@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated 28-Feb-2014 14:23:54 by Hibernate Tools 3.2.1.GA -->
+<hibernate-mapping>
+    <class name="uk.org.openeyes.diagnostics.db.Directory" table="directory" catalog="field_reports">
+        <id name="id" type="java.lang.Integer">
+            <column name="id" />
+            <generator class="identity" />
+        </id>
+        <property name="dirPath" type="string">
+            <column name="dir_path" length="256" not-null="true" />
+        </property>
+        <set name="duplicates" inverse="true">
+            <key>
+                <column name="directory_id" />
+            </key>
+            <one-to-many class="uk.org.openeyes.diagnostics.db.Duplicate" />
+        </set>
+        <set name="fieldReports" inverse="true">
+            <key>
+                <column name="directory_id" />
+            </key>
+            <one-to-many class="uk.org.openeyes.diagnostics.db.FieldReport" />
+        </set>
+    </class>
+</hibernate-mapping>

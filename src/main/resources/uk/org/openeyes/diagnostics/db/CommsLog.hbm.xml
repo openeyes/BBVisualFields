@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated 28-Feb-2014 14:23:54 by Hibernate Tools 3.2.1.GA -->
+<hibernate-mapping>
+    <class name="uk.org.openeyes.diagnostics.db.CommsLog" table="comms_log" catalog="field_reports">
+        <id name="id" type="java.lang.Integer">
+            <column name="id" />
+            <generator class="identity" />
+        </id>
+        <many-to-one name="fieldReport" class="uk.org.openeyes.diagnostics.db.FieldReport" fetch="select">
+            <column name="field_report_id" not-null="true" />
+        </many-to-one>
+        <many-to-one name="resourceType" class="uk.org.openeyes.diagnostics.db.ResourceType" fetch="select">
+            <column name="resource_type_id" not-null="true" />
+        </many-to-one>
+        <property name="reportTime" type="timestamp">
+            <column name="report_time" length="19" not-null="true" />
+        </property>
+        <property name="result" type="string">
+            <column name="result" length="65535" />
+        </property>
+        <property name="returnCode" type="int">
+            <column name="return_code" not-null="true" />
+        </property>
+    </class>
+</hibernate-mapping>

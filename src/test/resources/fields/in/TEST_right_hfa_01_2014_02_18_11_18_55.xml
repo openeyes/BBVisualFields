@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CZM-XML xmlns="http://www.meditec.zeiss.com/czm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.meditec.zeiss.com/CZM-XML-Root.xsd">
+	<Header>
+		<czm_xml_version VR="LO" codingScheme="99CZM" codeId="7711,1102" codeMeaning="CZM XML Version"></czm_xml_version>
+		<user_name VR="SH" codingScheme="99CZM" codeId="7711,1103" codeMeaning="User Name"/>
+		<source_aet VR="AE" codingScheme="DCM" codeId="0002,0016" codeMeaning="Source Application Entity Title"></source_aet>
+		<destination_aet VR="AE" codingScheme="DCM" codeId="2100,0140" codeMeaning="Destination Application Entity"></destination_aet>
+		<language VR="CS" codingScheme="99CZM" codeId="7711,1110" codeMeaning="Language"/>
+		<country VR="CS" codingScheme="99CZM" codeId="7711,1111" codeMeaning="Country"/>
+	</Header>
+<Command>
+	<czm_command VR="CS" codingScheme="99CZM" codeId="7711,1101" codeMeaning="CZM Command"></czm_command>
+    <affected_sop_class_uid VR="UI" codingScheme="DCM" codeId="0000,0002" codeMeaning="Affected SOP Class UID">1.2.826.0.1.3680043.2.139.3.2.2</affected_sop_class_uid>
+	<affected_sop_instance_uid VR="UI" codingScheme="DCM" codeId="0000,1000" codeMeaning="Affected SOP Instance UID">1.2.826.0.1.3680043.2.139.3.2.2.74015852070930055013088301454</affected_sop_instance_uid>
+	<message_id VR="US" codingScheme="DCM" codeId="0000,0110" codeMeaning="Message ID"></message_id>
+	<message_id_being_responded_to VR="US" codingScheme="DCM" codeId="0000,0120" codeMeaning="Message ID Being Responded To"/>
+	<priority VR="US" codingScheme="DCM" codeId="0000,0700" codeMeaning="Priority"/>
+	<status VR="US" codingScheme="DCM" codeId="0000,0900" codeMeaning="Status"/>
+	<error_comment VR="LO" codingScheme="DCM" codeId="0000,0902" codeMeaning="Status"/>
+	<error_id VR="US" codingScheme="DCM" codeId="0000,0903" codeMeaning="Error ID"/>
+</Command>
+<DataSet>
+    <CZM_HFA_EMR_IOD>
+        <iod_version VR="LO" codingScheme="99CZM" codeId="7711,1202" codeMeaning="IOD Version">1.1</iod_version>
+	    <Patient_M>
+		    <patients_name VR="PN" codingScheme="DCM" codeId="0010,0010" codeMeaning="Patient's Name">
+			    <family_name>Tidy-Jones</family_name>
+			    <given_name>Bob</given_name>
+			    <middle_name></middle_name>
+			    <name_prefix></name_prefix>
+			    <name_suffix></name_suffix>
+		    </patients_name>
+		    <patient_id VR="LO" codingScheme="DCM" codeId="0010,0020" codeMeaning="Patient ID">1000001</patient_id>
+            <issuer_of_patient_id VR="LO" codingScheme="DCM" codeId="0010,0021" codeMeaning="Issuer of Patient ID"></issuer_of_patient_id>
+		    <patients_birth_date VR="DA" codingScheme="DCM" codeId="0010,0030" codeMeaning="Patient's Birth Date">1947-12-23</patients_birth_date>
+		    <patients_sex VR="CS" codingScheme="DCM" codeId="0010,0040" codeMeaning="Patient's Sex">F</patients_sex>
+		    <other_patient_ids VR="LO" codingScheme="DCM" codeId="0010,1000" codeMeaning="Other Patient IDs">
+			    <value></value>
+		    </other_patient_ids>
+		    <patient_comments VR="LT" codingScheme="DCM" codeId="0010,4000" codeMeaning="Patient Comments"/>
+	    </Patient_M>
+	    <GeneralStudy_M>
+		    <study_instance_uid VR="UI" codingScheme="DCM" codeId="0020,000D" codeMeaning="Study Instance UID">1.2.826.0.1.3680043.2.139.3.2.3.740.15852.201133.131458</study_instance_uid>
+		    <study_date VR="DA" codingScheme="DCM" codeId="0008,0020" codeMeaning="Study Date">2003-06-12</study_date>
+		    <study_time VR="TM" codingScheme="DCM" codeId="0008,0030" codeMeaning="Study Time">13:14:58.000</study_time>
+		    <referring_physicians_name VR="PN" codingScheme="DCM" codeId="0008,0090" codeMeaning="Referring Physician's Name">
+			    <family_name/>
+			    <given_name/>
+			    <middle_name/>
+			    <name_prefix/>
+			    <name_suffix/>
+		    </referring_physicians_name>
+		    <study_id VR="SH" codingScheme="DCM" codeId="0020,0010" codeMeaning="Study ID"/>
+		    <accession_number VR="SH" codingScheme="DCM" codeId="0008,0050" codeMeaning="Accession Number"></accession_number>
+		    <placer_order_number_imaging_service_request VR="LO" codingScheme="DCM" codeId="0040,2016" codeMeaning="Placer Order Number / Imaging Service Request"></placer_order_number_imaging_service_request>
+		    <study_description VR="LO" codingScheme="DCM" codeId="0008,1030" codeMeaning="Study Description"/>
+	    </GeneralStudy_M>
+	    <GeneralSeries_M>
+		    <modality VR="CS" codingScheme="DCM" codeId="0008,0060" codeMeaning="Modality">CZM_HFA</modality>
+		    <series_instance_uid VR="UI" codingScheme="DCM" codeId="0020,000E" codeMeaning="Series Instance UID">1.2.826.0.1.3680043.2.139.3.2.1.74015852070930055013088301455</series_instance_uid>
+		    <series_number VR="IS" codingScheme="DCM" codeId="0020,0011" codeMeaning="Series Number"/>
+		    <laterality VR="CS" codingScheme="DCM" codeId="0020,0060" codeMeaning="Laterality">R</laterality>
+		    <series_date VR="DA" codingScheme="DCM" codeId="0008,0021" codeMeaning="Series Date">2011-06-23</series_date>
+		    <series_time VR="TM" codingScheme="DCM" codeId="0008,0031" codeMeaning="Series Time">11:55:50.000</series_time>
+		    <performing_physicians_name codingScheme="DCM" codeId="0008,1050" codeMeaning="Performing Physician's Name">
+			    <value>
+				    <family_name/>
+				    <given_name/>
+				    <middle_name/>
+				    <name_prefix/>
+				    <name_suffix/>
+			    </value>
+		    </performing_physicians_name>
+		    <comments_on_the_performed_procedure_step VR="ST" codingScheme="DCM" codeId="0040,0280" codeMeaning="Comments on the Performed Procedure Step"></comments_on_the_performed_procedure_step>
+	    </GeneralSeries_M>
+	    <GeneralEquipment_M>
+		    <manufacturer VR="LO" codingScheme="DCM" codeId="0008,0070" codeMeaning="Manufacturer">Carl Zeiss Meditec Inc.</manufacturer>
+		    <station_name VR="SH" codingScheme="DCM" codeId="0008,1010" codeMeaning="Station Name"></station_name>
+		    <manufacturers_model_name VR="LO" codingScheme="DCM" codeId="0008,1090" codeMeaning="Manufacturer's Model Name">740</manufacturers_model_name>
+		    <device_serial_number VR="LO" codingScheme="DCM" codeId="0018,1000" codeMeaning="Device Serial Number">15852</device_serial_number>
+		    <software_versions VR="LO" codingScheme="DCM" codeId="0018,1020" codeMeaning="Software Versions">
+			    <value>4.2 </value>
+		    <value>740-15852 4.2</value>
+</software_versions>
+	    </GeneralEquipment_M>
+	    <SOPCommon_M>
+		    <sop_instance_uid VR="UI" codingScheme="DCM" codeId="0008,0018" codeMeaning="SOP Instance UID">1.2.826.0.1.3680043.2.139.3.2.2.74015852070930055013088301456</sop_instance_uid>
+		    <instance_creation_date VR="DA" codingScheme="DCM" codeId="0008,0012" codeMeaning="Instance Creation Date">2011-06-23</instance_creation_date>
+		    <instance_creation_time VR="TM" codingScheme="DCM" codeId="0008,0013" codeMeaning="Instance Creation Time">11:55:50.000</instance_creation_time>
+		    <instance_creator_uid VR="UI" codingScheme="DCM" codeId="0008,0014" codeMeaning="Instance Creator UID"/>
+		    <instance_number VR="IS" codingScheme="DCM" codeId="0020,0013" codeMeaning="Instance Number"/>
+	    </SOPCommon_M>
+	    <CZM_HFA_Series_M>
+		    <test_date VR="DA" codingScheme="99CZM" codeId="7717,1732" codeMeaning="Test Date">2011-03-03</test_date>
+		    <test_time VR="TM" codingScheme="99CZM" codeId="7717,1733" codeMeaning="Test Time">13:14:58.000</test_time>
+		    <test_name VR="LO" codingScheme="99CZM" codeId="7717,1701" codeMeaning="Test Name">24-2 SITA-Standard</test_name>
+		    <test_strategy VR="LO" codingScheme="99CZM" codeId="7717,1702" codeMeaning="Test Strategy">SITA-Standard</test_strategy>
+		    <stimulus_size VR="CS" codingScheme="99CZM" codeId="7717,1703" codeMeaning="Stimulus Size">III</stimulus_size>
+		    <stimulus_color VR="SH" codingScheme="99CZM" codeId="7717,1704" codeMeaning="Stimulus Color">White</stimulus_color>
+		    <background_state VR="SH" codingScheme="99CZM" codeId="7717,1705" codeMeaning="Background State">White</background_state>
+		    <foveal_result VR="CS" codingScheme="99CZM" codeId="7717,1706" codeMeaning="Foveal Result">NOT-TESTED</foveal_result>
+	        <screening_mode VR="LO" codingScheme="99CZM" codeId="7717,1707" codeMeaning="Screening Mode"></screening_mode>
+	        <pupil_diameter VR="DS" codingScheme="99CZM" codeId="7717,1726" codeMeaning="Pupil Diameter"></pupil_diameter>
+		    <visual_acuity VR="SH" codingScheme="99CZM" codeId="7717,1730" codeMeaning="Visual Acuity"></visual_acuity>
+	        <fixation_monitor VR="LO" codingScheme="99CZM" codeId="7717,1724" codeMeaning="Fixation Monitor">Gaze/Blind Spot</fixation_monitor>
+	        <fixation_target VR="LO" codingScheme="99CZM" codeId="7717,1725" codeMeaning="Fixation Target">Central</fixation_target>
+		    <fixation_trials VR="IS" codingScheme="99CZM" codeId="7717,1708" codeMeaning="Fixation Trials">15</fixation_trials>
+		    <fixation_errors VR="IS" codingScheme="99CZM" codeId="7717,1709" codeMeaning="Fixation Errors">2</fixation_errors>
+		    <false_positives>
+			    <false_positive_percent VR="DS" codingScheme="99CZM" codeId="7717,1710" codeMeaning="False Positive Percent">20</false_positive_percent>
+			    </false_positives>
+		    <false_negatives>
+			    <false_negative_percent VR="DS" codingScheme="99CZM" codeId="7717,1713" codeMeaning="False Negative Percent">7</false_negative_percent>
+			    </false_negatives>
+		    <trial_rx>
+			    <sphere VR="DS" codingScheme="99CZM" codeId="7717,1727" codeMeaning="Sphere">+3.25</sphere>
+			    <cylinder VR="DS" codingScheme="99CZM" codeId="7717,1728" codeMeaning="Cylinder"></cylinder>
+			    <axis VR="IS" codingScheme="99CZM" codeId="7717,1729" codeMeaning="Axis"></axis>
+		    </trial_rx>
+	    </CZM_HFA_Series_M>
+        <CZM_HFA_Analysis_M>
+		    <mean_deviation VR="DS" codingScheme="99CZM" codeId="7717,1716" codeMeaning="Mean Deviation">-0.52</mean_deviation>
+		    <mean_deviation_probability VR="SH" codingScheme="99CZM" codeId="7717,1717" codeMeaning="Mean Deviation Probability">Not Significant</mean_deviation_probability>
+		    <pattern_standard_deviation VR="DS" codingScheme="99CZM" codeId="7717,1718" codeMeaning="Pattern Standard Deviation">2.03</pattern_standard_deviation>
+		    <pattern_standard_deviation_probability VR="SH" codingScheme="99CZM" codeId="7717,1719" codeMeaning="Pattern Standard Deviation Probability">p &lt; 5%</pattern_standard_deviation_probability>
+		    <short_term_fluctuation VR="DS" codingScheme="99CZM" codeId="7717,1720" codeMeaning="Short-term Fluctuation"></short_term_fluctuation>
+		    <short_term_fluctuation_probability VR="SH" codingScheme="99CZM" codeId="7717,1731" codeMeaning="Short-term Fluctuation Probability"></short_term_fluctuation_probability>
+		    <corrected_pattern_standard_deviation VR="DS" codingScheme="99CZM" codeId="7717,1721" codeMeaning="Corrected Pattern Standard Deviation"></corrected_pattern_standard_deviation>
+		    <corrected_pattern_standard_deviation_probability VR="SH" codingScheme="99CZM" codeId="7717,1722" codeMeaning="Corrected Pattern Standard Deviation Probability"></corrected_pattern_standard_deviation_probability>
+    	    <glaucoma_hemifield_test VR="LO" codingScheme="99CZM" codeId="7717,1723" codeMeaning="Glaucoma Hemifield Test">Borderline</glaucoma_hemifield_test>
+    	</CZM_HFA_Analysis_M>
+	    <GeneralImage_M>
+		    <instance_number VR="IS" codingScheme="DCM" codeId="0020,0013" codeMeaning="Instance Number">001</instance_number>
+		    <content_date VR="DA" codingScheme="DCM" codeId="0008,0023" codeMeaning="Content Date"/>
+		    <content_time VR="TM" codingScheme="DCM" codeId="0008,0033" codeMeaning="Content Time"/>
+		    <image_type VR="CS" codingScheme="DCM" codeId="0008,0008" codeMeaning="Image Type">
+			    <value/>
+		    </image_type>
+		    <derivation_description VR="ST" codingScheme="DCM" codeId="0008,2111" codeMeaning="Derivation Description">SFA</derivation_description>
+		    <image_comments VR="LT" codingScheme="DCM" codeId="0020,4000" codeMeaning="Image Comments"/>
+	    </GeneralImage_M>
+	    <ReferencedImage_M>
+		    <transfer_protocol VR="CS" codingScheme="99CZM" codeId="7711,1104" codeMeaning="CZM Transfer Protocol">FILE</transfer_protocol>
+		    <server_name VR="LT" codingScheme="99CZM" codeId="7711,1109" codeMeaning="Server Name"/>
+		    <file_reference VR="LT" codingScheme="99CZM" codeId="7711,1108" codeMeaning="File Reference">TEST_right_hfa_01_2014_02_18_11_18_55.tif</file_reference>
+		    <type_identifier VR="CS" codingScheme="99CZM" codeId="7711,1107" codeMeaning="Type Identifier">TIF</type_identifier>
+	    </ReferencedImage_M>
+    </CZM_HFA_EMR_IOD>
+ </DataSet>
+</CZM-XML>
