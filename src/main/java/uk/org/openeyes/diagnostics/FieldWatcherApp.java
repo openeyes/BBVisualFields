@@ -27,6 +27,8 @@ public class FieldWatcherApp {
       System.exit(1);
     }
     Options options = new Options();
+    Option optionFile = new Option("f", "file", true,
+            "Specify XML file to send, then quit (mutually exclusive with -i)");
     Option optionHost = new Option("s", "host", true,
             "Specify server to send messages to.");
     Option optionRegex = new Option("r", "regex", true,
@@ -46,6 +48,7 @@ public class FieldWatcherApp {
     Option optionHelp = new Option("h", "help", false,
             "Print this help then quit.");
     options.addOption(optionErrDir);
+    options.addOption(optionFile);
     options.addOption(optionInDir);
     options.addOption(optionArchiveDir);
     options.addOption(optionHost);
@@ -83,6 +86,7 @@ public class FieldWatcherApp {
       if (cmd.hasOption("r") || cmd.hasOption("regex")) {
         watcher.setRegex(cmd.getOptionValue("regex"));
       }
+//	  TODO - duplicates are an issue that needs to be dealt with
 //      if (cmd.hasOption("u") || cmd.hasOption("duplicates")) {
 //        watcher.setDuplicateDir(new File(cmd.getOptionValue("duplicates")));
 //        if (!watcher.getDuplicateDir().exists()) {
@@ -109,6 +113,12 @@ public class FieldWatcherApp {
           System.exit(1);
         }
       }
+	  
+      if ((cmd.hasOption("i") || cmd.hasOption("interval"))
+			  &&  (cmd.hasOption("f") || cmd.hasOption("file"))) {
+		System.err.println("Cannot specify interval AND file; specify one or the other.");
+		System.exit(1);
+	  }
       if (cmd.hasOption("i") || cmd.hasOption("interval")) {
         String interval = cmd.getOptionValue("interval");
         try {
@@ -119,13 +129,19 @@ public class FieldWatcherApp {
           System.exit(1);
         }
       }
-      // post checks
-      if (null != watcher) {
-        Thread t = new Thread(watcher);
-        t.start();
-      }
+      if (cmd.hasOption("f") || cmd.hasOption("file")) {
+        String file = cmd.getOptionValue("file");
+		watcher.processFile(new File(file));
+      } else {
+	  
+		// post checks
+		if (null != watcher) {
+		  Thread t = new Thread(watcher);
+		  t.start();
+		}
+	  }
     } catch (Exception ex) {
-      ex.printStackTrace();
+      System.err.println("Error: " + ex.getMessage());
     }
   }
 }

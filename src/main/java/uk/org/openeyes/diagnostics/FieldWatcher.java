@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
@@ -19,13 +20,9 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.xmlbeans.XmlException;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hl7.fhir.DiagnosticReport;
-import org.hl7.fhir.DiagnosticReportDocument;
-import org.hl7.fhir.OperationOutcomeDocument;
 import org.hl7.fhir.Patient;
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IMOperation;
@@ -97,7 +94,6 @@ public class FieldWatcher implements Runnable {
    *
    */
   public void run() {
-	this.generateDirectories();
 	while (true) {
 	  try {
 		this.checkDir();
@@ -105,6 +101,89 @@ public class FieldWatcher implements Runnable {
 	  } catch (InterruptedException iex) {
 		iex.printStackTrace();
 	  }
+	}
+  }
+
+  /**
+   * @param file
+   */
+  public void processFile(File file) {
+
+	this.generateDirectories();
+	System.out.println("Processing " + file.getName());
+	try {
+	  // parse XML file:
+	  if (!this.validate(file)) {
+		file.renameTo(new File(this.errDir, file.getName()));
+		// if the file is invalid, that means we can't get the file name -
+		// though it might still exist. Check anyway:
+		String basename = FilenameUtils.getBaseName(file.getName());
+		File imageFile = new File(file.getParentFile(), basename + ".tif");
+		if (imageFile.exists()) {
+		  imageFile.renameTo(new File(this.errDir, imageFile.getName()));
+		}
+		return;
+	  }
+	  HumphreyFieldMetaData metaData = this.parseFields(file);
+	  // find out what the values in the report are:
+	  FieldReport report = this.generateReport(file, metaData, true);
+
+	  /*
+	   // TODO: these are reliant on the PAS being in place
+	   String familyName = this.getPatientFamilyName(patient);
+	   String id = this.getPatientId(patient);
+	   String birthDate = this.getPatientDoB(patient);
+	   if (birthDate != null && !birthDate.equals(metaData.getDob())) {
+	   report.setFieldError(DbUtils.getError(DbUtils.ERROR_NO_DOB_MATCH));
+	   continue;
+	   }
+	   if (familyName != null && !familyName.equals(metaData.getFamilyName())) {
+	   report.setFieldError(DbUtils.getError(DbUtils.ERROR_NO_SURNAME_MATCH));
+	   continue;
+	   }*/
+	  // we expect to see the named file reference in the same directory
+	  // as the XML file:
+
+	  File imageFile = new File(this.dir, metaData.getFileReference());
+
+	  if (imageFile.isDirectory() || !imageFile.exists()) {
+		this.moveFile(metaData, report, file);
+		return;
+	  }
+
+	  if (!report.getFieldErrorReports().isEmpty()) {
+		this.moveFile(metaData, report, file);
+		System.out.println("records do NOT match; moving to " + this.errDir);
+		return;
+	  }
+
+	  // get the report's patient id and find out if they exist:
+	  Patient patient = this.getPatient(metaData);
+	  if (patient == null) {
+		// TODO
+		System.out.println("Could not find patient " + metaData.getPatientId());
+		return;
+	  }
+	  System.out.println("records match");
+	  this.transferHumphreyVisualField(Integer.parseInt(patient.getId()), file, imageFile, report);
+	  File moveToFile = new File(this.archiveDir, imageFile.getName());
+	  imageFile.renameTo(moveToFile);
+	  // don't use boolean result, not always consistent, just check if new file exists:
+	  if (!moveToFile.exists()) {
+		System.out.println("Unable to move " + imageFile.getAbsolutePath());
+		// TODO clean up - mark file as ignored?
+	  }
+	  moveToFile = new File(this.archiveDir, file.getName());
+	  file.renameTo(moveToFile);
+	  // don't use boolean result, not always consistent, just check if new file exists:
+	  if (!moveToFile.exists()) {
+		System.out.println("Unable to move " + file.getAbsolutePath());
+		// TODO clean up - mark file as ignored?
+	  }
+	} catch (FileNotFoundException fnfex) {
+	  fnfex.printStackTrace();
+	} catch (IOException fnfex) {
+	  fnfex.printStackTrace();
 	}
   }
 
@@ -119,67 +198,7 @@ public class FieldWatcher implements Runnable {
 	  }
 	});
 	for (File file : files) {
-	  System.out.println("Processing " + file.getName());
-	  try {
-
-		// parse XML file:
-		if (!this.validate(file)) {
-		  file.renameTo(new File(this.errDir, file.getName()));
-		  continue;
-		}
-		HumphreyFieldMetaData metaData = this.parseFields(file);
-		// find out what the values in the report are:
-		FieldReport report = this.generateReport(file, metaData, true);
-
-		/*
-		 // TODO: these are reliant on the PAS being in place
-		 String familyName = this.getPatientFamilyName(patient);
-		 String id = this.getPatientId(patient);
-		 String birthDate = this.getPatientDoB(patient);
-		 if (birthDate != null && !birthDate.equals(metaData.getDob())) {
-		 report.setFieldError(DbUtils.getError(DbUtils.ERROR_NO_DOB_MATCH));
-		 continue;
-		 }
-		 if (familyName != null && !familyName.equals(metaData.getFamilyName())) {
-		 report.setFieldError(DbUtils.getError(DbUtils.ERROR_NO_SURNAME_MATCH));
-		 continue;
-		 }*/
-		// we expect to see the named file reference in the same directory
-		// as the XML file:
-
-		File imageFile = new File(this.dir, metaData.getFileReference());
-
-		if (imageFile.isDirectory() || !imageFile.exists()) {
-		  this.moveFile(metaData, report, file);
-		  continue;
-
-		}
-
-		if (!report.getFieldErrorReports().isEmpty()) {
-		  this.moveFile(metaData, report, file);
-		  System.out.println("records do NOT match; moving to " + this.errDir);
-		  continue;
-		}
-
-		// get the report's patient id and find out if they exist:
-		Patient patient = this.getPatient(metaData);
-		if (patient == null) {
-		  // TODO
-		  System.out.println("Could not find patient " + metaData.getPatientId());
-		  continue;
-		}
-		System.out.println("records match");
-		this.transferHumphreyVisualField(Integer.parseInt(patient.getId()), file, imageFile, report);
-		boolean moved = imageFile.renameTo(new File(this.archiveDir, imageFile.getName()));
-		if (!moved) {
-		  System.out.println("Unable to move " + imageFile.getAbsolutePath());
-		  // TODO clean up - mark file as ignored?
-		}
-	  } catch (FileNotFoundException fnfex) {
-		fnfex.printStackTrace();
-	  } catch (IOException fnfex) {
-		fnfex.printStackTrace();
-	  }
+	  this.processFile(file);
 	}
   }
 
@@ -192,17 +211,51 @@ public class FieldWatcher implements Runnable {
    */
   private void moveFile(HumphreyFieldMetaData metaData, FieldReport report,
 		  File file) throws IOException {
+	for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext(); ) {
+	  FieldErrorReport fer = it.next();
+	  System.out.println(fer.getFieldError().getId() + " " +fer.getFieldError().getDescription());
+	}
 	// in the case of an invalid file reference, we treat a non-existent image as existing:
-	if (report.getFieldErrorReports().contains(DbUtils.ERROR_INVALID_FILE_REFERENCE)) {
+	if (!this.errorReportContains(report.getFieldErrorReports(), DbUtils.ERROR_INVALID_FILE_REFERENCE)) {
 	  // then the image file exists - move this too:
 	  File imageFile = new File(this.dir, metaData.getFileReference());
-	  if (!imageFile.renameTo(new File(this.errDir, metaData.getFileReference()))) {
+	  File fileToMove = new File(this.errDir, metaData.getFileReference());
+	  imageFile.renameTo(fileToMove);
+	  if (!fileToMove.exists()) {
 		throw new IOException("Unable to move " + imageFile.getAbsolutePath());
 	  }
+	} else if (this.errorReportContains(report.getFieldErrorReports(), DbUtils.ERROR_INVALID_FILE_REFERENCE)) {
+	  // the file might exist but the reference might be duff - check anyway:
+	  String basename = FilenameUtils.getBaseName(file.getName());
+	  File imageFile = new File(file.getParentFile(), basename + ".tif");
+	  if (imageFile.exists()) {
+		imageFile.renameTo(new File(this.errDir, imageFile.getName()));
+	  }
 	}
-	if (!file.renameTo(new File(this.errDir, file.getName()))) {
+	File fileToMoveTo = new File(this.errDir, file.getName());
+	file.renameTo(fileToMoveTo);
+	if (!fileToMoveTo.exists()) {
 	  throw new IOException("Unable to move " + file.getAbsolutePath());
 	}
+  }
+  
+  /**
+   * Check to see if the reports contain the specified error.
+   * 
+   * @param reports non-null set of reports.
+   * @param errorCode The error code to check for.
+   * @return true of the reports contain the specified error code;
+   * false otherwise.
+   */
+  private boolean errorReportContains(Set<FieldErrorReport> reports, int errorCode) {
+	boolean result = false;
+	for(Iterator<FieldErrorReport> it = reports.iterator(); it.hasNext(); ) {
+	  if (it.next().getFieldError().getId() == errorCode) {
+		result = true;
+		break;
+	  }
+	}
+	return result;
   }
 
   /**
@@ -285,8 +338,8 @@ public class FieldWatcher implements Runnable {
 
   /**
    * Transfer the specified report.
-   * 
-   * @param patientRef 
+   *
+   * @param patientRef
    * @param file
    * @param xmlFile
    * @param fieldReport
@@ -319,6 +372,7 @@ public class FieldWatcher implements Runnable {
 	fis = new FileInputStream(imageCropped);
 	String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
 
+	// TODO poss use jaxb etc.
 	String patientMeasurement = "<PatientMeasurement><patient_id value=\""
 			+ patientRef + "\"/><measurement_type value=\"MeasurementVisualFieldHumphrey\"/></PatientMeasurement>";
 
@@ -329,6 +383,7 @@ public class FieldWatcher implements Runnable {
 	Pattern pattern = Pattern.compile("^.*/PatientMeasurement/([0-9]*)/.*$");
 	Matcher matcher = pattern.matcher(location);
 
+	// TODO poss use jaxb etc.
 	if (code == 201 && matcher.matches()) {
 	  String reportText = "<MeasurementVisualFieldHumphrey><patient_id value=\"" + patientRef + "\"/>"
 			  + "<patient_measurement_id value=\"" + matcher.group(1) + "\"/>"
@@ -360,6 +415,7 @@ public class FieldWatcher implements Runnable {
 		// TODO cleanup - what was the error?
 	  }
 	} else {
+	  // deal with the error
 	}
 	imageConverted.delete();
 	imageCropped.delete();
