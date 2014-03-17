@@ -5,14 +5,11 @@
 package uk.org.openeyes.diagnostics;
 
 import java.io.File;
-import java.io.IOException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.im4java.core.ConvertCmd;
-import org.im4java.core.IMOperation;
 
 /**
  *
@@ -45,6 +42,11 @@ public class FieldWatcherApp {
             "Dirctory to move files that that failed validation.");
     Option optionArchiveDir = new Option("a", "archive-dir", true,
             "Directory to move sucessfully transferred files to.");
+    Option optionImageOpts = new Option("g", "image-options", true,
+            "Specify location and segment of humphrey test to extract, along with."
+			+ " scaling parameters. Format: x,y,w,h,x1,y1 where x,y is the"
+			+ " the location to cut image with wxh size, scaled to x1,y1."
+			+ " Scaling parameters (x1,y1) are optional and can be omitted.");
     Option optionHelp = new Option("h", "help", false,
             "Print this help then quit.");
     options.addOption(optionErrDir);
@@ -53,6 +55,7 @@ public class FieldWatcherApp {
     options.addOption(optionArchiveDir);
     options.addOption(optionHost);
     options.addOption(optionInterval);
+    options.addOption(optionImageOpts);
     options.addOption(optionPort);
     options.addOption(optionDupDir);
     options.addOption(optionHelp);
@@ -102,6 +105,9 @@ public class FieldWatcherApp {
                   + "Specify a valid directory.");
           System.exit(1);
         }
+      }
+      if (cmd.hasOption("g") || cmd.hasOption("image-options")) {
+        watcher.setImageOptions(cmd.getOptionValue("image-options"));
       }
       if (cmd.hasOption("p") || cmd.hasOption("port")) {
         String port = cmd.getOptionValue("port");
