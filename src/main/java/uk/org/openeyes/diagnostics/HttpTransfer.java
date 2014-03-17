@@ -74,7 +74,6 @@ public class HttpTransfer {
    */
   public int read(String host, int port, String resourceType, String jsonType, String requestParams) {
     int result = -1;
-//    String strURL = "http://" + host + ":" + port + "/api/" + resourceType + "?fhir_type="+jsonType+"&resource_type=Patient" + "&_format=xml";
     String strURL = "http://" + host + ":" + port + "/api/" + resourceType + "?resource_type=Patient&_format=xml";
     if (requestParams != null) {
       strURL += "&" + requestParams;
