@@ -43,10 +43,13 @@ public class FieldWatcherApp {
     Option optionArchiveDir = new Option("a", "archive-dir", true,
             "Directory to move sucessfully transferred files to.");
     Option optionImageOpts = new Option("g", "image-options", true,
-            "Specify location and segment of humphrey test to extract, along with."
+            "Specify location and segment of humphrey test to extract, along with"
 			+ " scaling parameters. Format: x,y,w,h,x1,y1 where x,y is the"
 			+ " the location to cut image with wxh size, scaled to x1,y1."
 			+ " Scaling parameters (x1,y1) are optional and can be omitted.");
+    Option optionSource = new Option("x", "xml-source", false,
+            "Include XML source file information with captured data. Default"
+			+ " is false.");
     Option optionHelp = new Option("h", "help", false,
             "Print this help then quit.");
     options.addOption(optionErrDir);
@@ -58,6 +61,7 @@ public class FieldWatcherApp {
     options.addOption(optionImageOpts);
     options.addOption(optionPort);
     options.addOption(optionDupDir);
+    options.addOption(optionSource);
     options.addOption(optionHelp);
     options.addOption(optionRegex);
     CommandLineParser parser = new PosixParser();
@@ -108,6 +112,9 @@ public class FieldWatcherApp {
       }
       if (cmd.hasOption("g") || cmd.hasOption("image-options")) {
         watcher.setImageOptions(cmd.getOptionValue("image-options"));
+      }
+      if (cmd.hasOption("x") || cmd.hasOption("xml-source")) {
+        watcher.setIncludeSource(true);
       }
       if (cmd.hasOption("p") || cmd.hasOption("port")) {
         String port = cmd.getOptionValue("port");

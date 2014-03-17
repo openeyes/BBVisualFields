@@ -65,6 +65,8 @@ public class FieldWatcher implements Runnable {
 	private int port = 80;
 	/** Specify parameters to crop and scale the image. */
 	private int[] imageOptions;
+	/** Include the XML source in the table data? Default to false. */
+	private boolean includeSource = false;
 	/**
 	 * Hibernate persistence session object.
 	 */
@@ -387,8 +389,7 @@ public class FieldWatcher implements Runnable {
 					+ "<file_reference value=\"" + fieldReport.getFileReference() + "\"/>"
 					+ "<pattern value=\"" + fieldReport.getTestName() + "\"/>"
 					+ "<strategy value=\"" + fieldReport.getTestType() + "\"/>";
-			boolean includeSource = true;
-			if (includeSource) {
+			if (this.isIncludeSource()) {
 				reportText += "<xml_file_data value=\"" + encoder.encode(IOUtils.toByteArray(new FileInputStream(xmlFile))) + "\"/>";
 			}
 			reportText += "</MeasurementVisualFieldHumphrey>";
@@ -755,10 +756,19 @@ public class FieldWatcher implements Runnable {
 				}
 				values[i] = val;
 			} catch(NumberFormatException nfex) {
-				throw new IllegalArgumentException("Invalid image options: "
+				throw new IllegalArgumentException("Invalid image optiotuns: "
 						+ imageOptions + "; mustube a positive integer.");
 			}
 		}
 		this.imageOptions = values;
 	}
+
+	public boolean isIncludeSource() {
+		return includeSource;
+	}
+
+	public void setIncludeSource(boolean includeSource) {
+		this.includeSource = includeSource;
+	}
+	
 }
