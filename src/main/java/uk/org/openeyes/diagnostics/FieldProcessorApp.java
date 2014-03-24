@@ -15,7 +15,7 @@ import org.apache.commons.cli.PosixParser;
  *
  * @author rich
  */
-public class FieldWatcherApp {
+public class FieldProcessorApp {
 
   public static void main(String[] args) {
 
@@ -32,7 +32,7 @@ public class FieldWatcherApp {
             "Regular expression to determine valid patient identifiers.");
     Option optionInterval = new Option("i", "interval", true,
             "Time in seconds to sleep between checking. Must be > 0");
-    Option optionPort = new Option("p", "port", true,
+    Option optionPort = new Option("p", "port", true,	
             "Port to connect to on server.");
     Option optionInDir = new Option("d", "dir", true,
             "Directory to watch for new files.");
@@ -65,7 +65,7 @@ public class FieldWatcherApp {
     options.addOption(optionHelp);
     options.addOption(optionRegex);
     CommandLineParser parser = new PosixParser();
-    FieldWatcher watcher = new FieldWatcher();
+    FieldProcessor watcher = new FieldProcessor();
     try {
       CommandLine cmd = parser.parse(options, args);
       if (cmd.hasOption("help") || cmd.hasOption('h')) {

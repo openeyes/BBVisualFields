@@ -1,7 +1,10 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package uk.org.openeyes.diagnostics;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -10,8 +13,6 @@ import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -27,9 +28,6 @@ import org.hl7.fhir.Patient;
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IMOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.w3.x2005.atom.ContentType;
-import org.w3.x2005.atom.EntryType;
-import org.w3.x2005.atom.FeedDocument;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 import sun.misc.BASE64Encoder;
@@ -42,36 +40,31 @@ import uk.org.openeyes.diagnostics.db.FieldReport;
 import uk.org.openeyes.diagnostics.db.HibernateUtil;
 
 /**
- * Temporary class to watch for humphrey field images.
+ *
+ * @author rich
  */
-public class FieldWatcher implements Runnable {
+public abstract class AbstractFieldProcessor {
 	
+	/** Directory to watch for incoming files. */
+	protected File dir;
+	/** Directory to move files to. */
+	protected File errDir;
+	/** Successfully processed reports are moved to this directory. */
+	protected File archiveDir;
+	/** Hospital/PID regex; PIDs that fail this pattern will be rejected. */
+	protected String regex = "^([0-9]{1,9})$";
 	/** Defaults when no CLI options given for image crop & scale. */
 	public static final int[] DEFAULT_IMAGE_OPTIONS
 			= {1368, 666, 662, 658, 300, 306};
-	/** Directory to watch for incoming files. */
-	private File dir;
-	/** Directory to move files to. */
-	private File errDir;
-	/** Successfully processed reports are moved to this directory. */
-	private File archiveDir;
-	/** Host to send reports to. */
-	private String host = "localhost";
-	/** Hospital/PID regex; PIDs that fail this pattern will be rejected. */
-	private String regex = "^([0-9]{1,9})$";
-	/** How long to wait (seconds) between checking for new reports. */
-	private int interval = 1;
-	/** Port number to send reports on. */
-	private int port = 80;
 	/** Specify parameters to crop and scale the image. */
-	private int[] imageOptions;
+	protected int[] imageOptions;
 	/** Include the XML source in the table data? Default to false. */
-	private boolean includeSource = false;
+	protected boolean includeSource = false;
 	/**
 	 * Hibernate persistence session object.
 	 */
-	private Session session;
-	@Autowired(required = true)
+	protected Session session;
+
 	private SessionFactory sessionFactory;
 
 	public SessionFactory getSessionFactory() {
@@ -82,117 +75,118 @@ public class FieldWatcher implements Runnable {
 	public void setSessionFactory(SessionFactory sessionFactory) {
 		this.sessionFactory = sessionFactory;
 	}
-
+	
 	/**
-	 *
+	 * Process the given XML file and determine it's contents.
+	 * 
+	 * The proecss should check for validity of the file.
+	 * 
+	 * @param f
+	 * @return 
 	 */
-	public void run() {
-		while (true) {
-			try {
-				this.checkDir();
-				Thread.sleep(this.interval * 1000);
-			} catch (InterruptedException iex) {
-				iex.printStackTrace();
-			}
-		}
-	}
-
+	public abstract void processFile(File f);
+	
 	/**
-	 * @param file
+	 * 
+	 * @param original
+	 * @param image1
+	 * @param image2 
 	 */
-	public void processFile(File file) {
-
-		this.generateDirectories();
-		System.out.println("Processing " + file.getName());
+	protected void transformImages(File original, File image1, File image2) {
+		
 		try {
-			// parse XML file:
-			if (!this.validate(file)) {
-				file.renameTo(new File(this.errDir, file.getName()));
-				// if the file is invalid, that means we can't get the file name -
-				// though it might still exist. Check anyway:
-				String basename = FilenameUtils.getBaseName(file.getName());
-				File imageFile = new File(file.getParentFile(), basename + ".tif");
-				if (imageFile.exists()) {
-					imageFile.renameTo(new File(this.errDir, imageFile.getName()));
-				}
-				return;
-			}
-			HumphreyFieldMetaData metaData = this.parseFields(file);
-			// find out what the values in the report are:
-			FieldReport report = this.generateReport(file, metaData, true);
+			ConvertCmd command = new ConvertCmd();
+			IMOperation op = new IMOperation();
+			op.addImage(original.getAbsolutePath());
 
-			/*
-			 // TODO: these are reliant on the PAS being in place
-			 String familyName = this.getPatientFamilyName(patient);
-			 String id = this.getPatientId(patient);
-			 String birthDate = this.getPatientDoB(patient);
-			 if (birthDate != null && !birthDate.equals(metaData.getDob())) {
-			 report.setFieldError(DbUtils.getError(DbUtils.ERROR_NO_DOB_MATCH));
-			 continue;
-			 }
-			 if (familyName != null && !familyName.equals(metaData.getFamilyName())) {
-			 report.setFieldError(DbUtils.getError(DbUtils.ERROR_NO_SURNAME_MATCH));
-			 continue;
-			 }*/
-			// we expect to see the named file reference in the same directory
-			// as the XML file:
-
-			File imageFile = new File(this.dir, metaData.getFileReference());
-
-			if (imageFile.isDirectory() || !imageFile.exists()) {
-				this.moveFile(metaData, report, file);
-				return;
-			}
-
-			if (!report.getFieldErrorReports().isEmpty()) {
-				this.moveFile(metaData, report, file);
-				System.out.println("records do NOT match; moving to " + this.errDir);
-				return;
-			}
-
-			// get the report's patient id and find out if they exist:
-			Patient patient = this.getPatient(metaData);
-			if (patient == null) {
-				// TODO
-				System.out.println("Could not find patient " + metaData.getPatientId());
-				return;
-			}
-			System.out.println("records match");
-			this.transferHumphreyVisualField(Integer.parseInt(patient.getId()), file, imageFile, report);
-			File moveToFile = new File(this.archiveDir, imageFile.getName());
-			imageFile.renameTo(moveToFile);
-			// don't use boolean result, not always consistent, just check if new file exists:
-			if (!moveToFile.exists()) {
-				System.out.println("Unable to move " + imageFile.getAbsolutePath());
-				// TODO clean up - mark file as ignored?
-			}
-			moveToFile = new File(this.archiveDir, file.getName());
-			file.renameTo(moveToFile);
-			// don't use boolean result, not always consistent, just check if new file exists:
-			if (!moveToFile.exists()) {
-				System.out.println("Unable to move " + file.getAbsolutePath());
-				// TODO clean up - mark file as ignored?
-			}
-		} catch (FileNotFoundException fnfex) {
-			fnfex.printStackTrace();
-		} catch (IOException fnfex) {
-			fnfex.printStackTrace();
+			op.format("GIF").addImage(image1.getAbsolutePath());
+			command.run(op);
+			op.crop(this.getImageOptions()[2], this.getImageOptions()[3],
+					this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
+			op.format("GIF").addImage(image2.getAbsolutePath());
+			command.run(op);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+	
+	public String getRegex() {
+		return regex;
+	}
+	/**
+	 * 
+	 * @param patientRef
+	 * @return 
+	 */
+	public String getPatientMeasurement(String patientRef) {
+		return "<PatientMeasurement><patient_id value=\""
+				+ patientRef + "\"/><measurement_type value=\"MeasurementVisualFieldHumphrey\"/></PatientMeasurement>";
+	}
+	
+	/**
+	 * 
+	 * @param patientRef
+	 * @param fieldReport
+	 * @param encodedData
+	 * @param encodedDataThumb
+	 * @return 
+	 */
+	public String getHumphreyMeasurement(File xmlFile, String patientRef,
+			String measurementRef, FieldReport fieldReport,
+			String encodedData, String encodedDataThumb) throws IOException {
+		
+		BASE64Encoder encoder = new BASE64Encoder();
+		String reportText = "<MeasurementVisualFieldHumphrey><patient_id value=\"" + patientRef + "\"/>"
+				+ "<patient_measurement_id value=\"" + measurementRef + "\"/>"
+				+ "<image_scan_data contentType=\"text/html\" value=\"" + encodedData
+				+ "\"/>" + "<image_scan_crop_data value=\"" + encodedDataThumb + "\"/>"
+				+ "<study_datetime value=\"" + fieldReport.getStudyDate() + " " + fieldReport.getStudyTime() + "\"/>"
+				+ "<eye value=\"" + fieldReport.getEye() + "\"/>"
+				+ "<file_reference value=\"" + fieldReport.getFileReference() + "\"/>"
+				+ "<pattern value=\"" + fieldReport.getTestName() + "\"/>"
+				+ "<strategy value=\"" + fieldReport.getTestType() + "\"/>";
+		if (this.isIncludeSource()) {
+			reportText += "<xml_file_data value=\"" + encoder.encode(IOUtils.toByteArray(new FileInputStream(xmlFile))) + "\"/>";
+		}
+		reportText += "</MeasurementVisualFieldHumphrey>";
+		return reportText;
+	}
+	
+	/**
+	 * 
+	 * @return 
+	 */
+	public int[] getImageOptions() {
+		if (this.imageOptions != null) {
+			return this.imageOptions;
+		} else {
+			return FieldProcessor.DEFAULT_IMAGE_OPTIONS;
 		}
 	}
 
 	/**
-	 *
+	 * 
+	 * @param imageOptions 
 	 */
-	private void checkDir() {
-		// get file list -  all XML files
-		File[] files = this.dir.listFiles(new FileFilter() {
-			public boolean accept(File pathname) {
-				return pathname.getName().endsWith(".xml");
+	public void setImageOptions(String imageOptions) {
+		// let's check all the values are valid:
+		String[] options = imageOptions.split(",");
+		int[] values = new int[options.length];
+		for(int i = 0; i < options.length; i++) {
+			try {
+				int val = Integer.parseInt(options[i].trim());
+				// don't accept negative values:
+				if (0 > val) {
+					throw new IllegalArgumentException("Invalid image options: "
+							+ imageOptions + "; cannot be negative value");
+				}
+				values[i] = val;
+			} catch(NumberFormatException nfex) {
+				throw new IllegalArgumentException("Invalid image optiotuns: "
+						+ imageOptions + "; mustube a positive integer.");
 			}
-		});
-		for (File file : files) {
-			this.processFile(file);
 		}
+		this.imageOptions = values;
 	}
 
 	/**
@@ -202,7 +196,7 @@ public class FieldWatcher implements Runnable {
 	 * @param file
 	 * @return
 	 */
-	private void moveFile(HumphreyFieldMetaData metaData, FieldReport report,
+	protected void moveFile(HumphreyFieldMetaData metaData, FieldReport report,
 			File file) throws IOException {
 		for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext();) {
 			FieldErrorReport fer = it.next();
@@ -250,170 +244,41 @@ public class FieldWatcher implements Runnable {
 		}
 		return result;
 	}
+	
 
-	/**
-	 *
-	 * @param patient
-	 * @return
-	 */
-	private String getPatientId(Patient patient) {
-		String id = null;
-		try {
-			id = patient.getIdentifierArray(0).getValue().getValue();
-		} catch (NullPointerException npex) {
-		}
-		return id;
+	public boolean isIncludeSource() {
+		return includeSource;
 	}
 
-	/**
-	 *
-	 * @param patient
-	 * @return
-	 */
-	private String getPatientFamilyName(Patient patient) {
-		String name = null;
-		try {
-			name = patient.getNameArray(0).getFamilyArray(0).getValue();
-		} catch (NullPointerException npex) {
-		}
-		return name;
+	public void setIncludeSource(boolean includeSource) {
+		this.includeSource = includeSource;
 	}
 
-	/**
-	 *
-	 * @param patient
-	 * @return
-	 */
-	private String getPatientDoB(Patient patient) {
-		String dob = null;
-		try {
-			dob = patient.getBirthDate().getValue().toString();
-		} catch (NullPointerException npex) {
-		}
-		return dob;
+	public File getDir() {
+		return dir;
 	}
 
-	/**
-	 *
-	 * @param patient
-	 * @return
-	 */
-	private String getPatientGender(Patient patient) {
-		String gender = null;
-		try {
-			gender = patient.getGender().getCodingArray(0).getCode().getValue();
-		} catch (NullPointerException npex) {
-		}
-		return gender;
+	public void setDir(File dir) {
+		this.dir = dir;
 	}
 
-	/**
-	 *
-	 * @param pid
-	 * @return
-	 */
-	private Patient getPatient(HumphreyFieldMetaData metaData) {
-		Patient p = null;
-		FhirUtils fhirUtils = new FhirUtils();
-		HttpTransfer sender = fhirUtils.readPatient(this.getHost(), this.getPort(), metaData);
-		try {
-			FeedDocument doc = FeedDocument.Factory.parse(sender.getResponse());
-			EntryType entry = doc.getFeed().getEntryArray(0);
-			ContentType content = entry.getContentArray(0);
-			p = content.getPatient();
-			// reference to patient, last part is ID:
-			p.setId(FilenameUtils.getBaseName(entry.getIdArray(0).getStringValue()));
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		return p;
+	public File getErrDir() {
+		return errDir;
 	}
 
-	/**
-	 * Transfer the specified report.
-	 *
-	 * @param patientRef
-	 * @param file
-	 * @param xmlFile
-	 * @param fieldReport
-	 */
-	private void transferHumphreyVisualField(int patientRef, File xmlFile, File file,
-			FieldReport fieldReport) throws IOException {
-		HttpTransfer sender = new HttpTransfer();
+	public void setErrDir(File errDir) {
+		this.errDir = errDir;
+	}
 
-		// execute the operation
-		File imageConverted = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + ".gif");
-		File imageCropped = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + "-cropped.gif");
-		try {
-			ConvertCmd command = new ConvertCmd();
-			IMOperation op = new IMOperation();
-			op.addImage(file.getAbsolutePath());
+	public File getArchiveDir() {
+		return archiveDir;
+	}
 
-			op.format("GIF").addImage(imageConverted.getAbsolutePath());
-			command.run(op);
-			op.crop(this.getImageOptions()[0], this.getImageOptions()[1],
-					this.getImageOptions()[2], this.getImageOptions()[3])
-					.thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
-			op.format("GIF").addImage(imageCropped.getAbsolutePath());
-			command.run(op);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		BASE64Encoder encoder = new BASE64Encoder();
-		FileInputStream fis = new FileInputStream(imageConverted);
-		String encodedData = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
-
-		encoder = new BASE64Encoder();
-		fis = new FileInputStream(imageCropped);
-		String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
-
-		// TODO poss use jaxb etc.
-		String patientMeasurement = "<PatientMeasurement><patient_id value=\""
-				+ patientRef + "\"/><measurement_type value=\"MeasurementVisualFieldHumphrey\"/></PatientMeasurement>";
-
-		int code = sender.send(this.getHost(), this.getPort(),
-				"PatientMeasurement", patientMeasurement);
-		String location = ((HttpTransfer) sender).getLocation();
-		// get the resultant ID from the location header:
-		Pattern pattern = Pattern.compile("^.*/PatientMeasurement/([0-9]*)/.*$");
-		Matcher matcher = pattern.matcher(location);
-
-		// TODO poss use jaxb etc.
-		if (code == 201 && matcher.matches()) {
-			String reportText = "<MeasurementVisualFieldHumphrey><patient_id value=\"" + patientRef + "\"/>"
-					+ "<patient_measurement_id value=\"" + matcher.group(1) + "\"/>"
-					+ "<image_scan_data contentType=\"text/html\" value=\"" + encodedData
-					+ "\"/>" + "<image_scan_crop_data value=\"" + encodedDataThumb + "\"/>"
-					+ "<study_datetime value=\"" + fieldReport.getStudyDate() + " " + fieldReport.getStudyTime() + "\"/>"
-					+ "<eye value=\"" + fieldReport.getEye() + "\"/>"
-					+ "<file_reference value=\"" + fieldReport.getFileReference() + "\"/>"
-					+ "<pattern value=\"" + fieldReport.getTestName() + "\"/>"
-					+ "<strategy value=\"" + fieldReport.getTestType() + "\"/>";
-			if (this.isIncludeSource()) {
-				reportText += "<xml_file_data value=\"" + encoder.encode(IOUtils.toByteArray(new FileInputStream(xmlFile))) + "\"/>";
-			}
-			reportText += "</MeasurementVisualFieldHumphrey>";
-			code = sender.send(this.getHost(), this.getPort(),
-					"MeasurementVisualFieldHumphrey", reportText);
-			this.generateCommsLog(code,
-					DbUtils.FHIR_RESOURCE_TYPE_DIAGNOSTIC_REPORT, fieldReport,
-					sender.getResponse());
-
-			if (code == 201) {
-				boolean moved = file.renameTo(new File(this.archiveDir, file.getName()));
-				if (!moved) {
-					System.err.println("Unable to move " + file.getAbsolutePath());
-				}
-			} else {
-				System.out.println("ERROR: " + code + ", " + sender.getResponse());
-				// TODO cleanup - what was the error?
-			}
-		} else {
-			// deal with the error
-		}
-		imageConverted.delete();
-		imageCropped.delete();
-
+	public void setArchiveDir(File archiveDir) {
+		this.archiveDir = archiveDir;
+	}
+	public void setRegex(String regex) {
+		this.regex = regex;
 	}
 
 	/**
@@ -634,10 +499,9 @@ public class FieldWatcher implements Runnable {
 	 * directories are required to associate with reports after files are moved
 	 * to the error or archive directories, for example.
 	 */
-	private void generateDirectories() {
+	protected void generateDirectories(File[] dirs) {
 		session = HibernateUtil.getSessionFactory().getCurrentSession();
 		session.getTransaction().begin();
-		File[] dirs = new File[]{this.dir, this.archiveDir, this.errDir};
 		for (File file : dirs) {
 			Query query = session.createQuery("from Directory where dir_path = :dir_path ");
 			query.setParameter("dir_path", file.getAbsolutePath());
@@ -669,106 +533,4 @@ public class FieldWatcher implements Runnable {
 		}
 		return directory;
 	}
-
-	public File getDir() {
-		return dir;
-	}
-
-	public void setDir(File dir) {
-		this.dir = dir;
-	}
-
-	public File getErrDir() {
-		return errDir;
-	}
-
-	public void setErrDir(File errDir) {
-		this.errDir = errDir;
-	}
-
-	public File getArchiveDir() {
-		return archiveDir;
-	}
-
-	public void setArchiveDir(File archiveDir) {
-		this.archiveDir = archiveDir;
-	}
-
-	public String getHost() {
-		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
-	}
-
-	public String getRegex() {
-		return regex;
-	}
-
-	public void setRegex(String regex) {
-		this.regex = regex;
-	}
-
-	public int getInterval() {
-		return interval;
-	}
-
-	public void setInterval(int interval) {
-		this.interval = interval;
-	}
-
-	public int getPort() {
-		return port;
-	}
-
-	public void setPort(int port) {
-		this.port = port;
-	}
-
-	/**
-	 * 
-	 * @return 
-	 */
-	public int[] getImageOptions() {
-		if (this.imageOptions != null) {
-			return this.imageOptions;
-		} else {
-			return this.DEFAULT_IMAGE_OPTIONS;
-		}
-	}
-
-	/**
-	 * 
-	 * @param imageOptions 
-	 */
-	public void setImageOptions(String imageOptions) {
-		// let's check all the values are valid:
-		String[] options = imageOptions.split(",");
-		int[] values = new int[options.length];
-		for(int i = 0; i < options.length; i++) {
-			try {
-				int val = Integer.parseInt(options[i].trim());
-				// don't accept negative values:
-				if (0 > val) {
-					throw new IllegalArgumentException("Invalid image options: "
-							+ imageOptions + "; cannot be negative value");
-				}
-				values[i] = val;
-			} catch(NumberFormatException nfex) {
-				throw new IllegalArgumentException("Invalid image optiotuns: "
-						+ imageOptions + "; mustube a positive integer.");
-			}
-		}
-		this.imageOptions = values;
-	}
-
-	public boolean isIncludeSource() {
-		return includeSource;
-	}
-
-	public void setIncludeSource(boolean includeSource) {
-		this.includeSource = includeSource;
-	}
-	
 }

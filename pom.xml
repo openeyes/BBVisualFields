@@ -140,8 +140,12 @@
               <name>BlackBox</name>
             </program>
             <program>
-              <mainClass>uk.org.openeyes.diagnostics.FieldWatcherApp</mainClass>
-              <name>field-watcher</name>
+              <mainClass>uk.org.openeyes.diagnostics.FieldProcessorApp</mainClass>
+              <name>fields</name>
+            </program>
+            <program>
+              <mainClass>uk.org.openeyes.diagnostics.LegacyFieldProcessorApp</mainClass>
+              <name>legacy-fields</name>
             </program>
             <program>
               <mainClass>Test</mainClass>

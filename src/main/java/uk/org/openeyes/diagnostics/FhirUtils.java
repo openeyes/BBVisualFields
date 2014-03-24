@@ -186,7 +186,9 @@ public class FhirUtils {
 
     String ref = null;
     HttpTransfer sender = new HttpTransfer();
-    int code = sender.send(host, port, type, data);
+	sender.setHost(host);
+	sender.setPort(port);
+    int code = sender.send(type, data);
     if (code == 201) {
       String response = sender.getResponse();
       try {
@@ -269,7 +271,9 @@ public class FhirUtils {
     String requestParams = "identifier=" + metaData.getPatientId() +
             "&last_name=" + metaData.getFamilyName() + 
             "&first_name=" + metaData.getGivenName();
-	sender.read(host, port, "Patient", "pat", requestParams);
+	sender.setHost(host);
+	sender.setPort(port);
+	sender.read("Patient", "pat", requestParams);
     return sender; 
   }
 
