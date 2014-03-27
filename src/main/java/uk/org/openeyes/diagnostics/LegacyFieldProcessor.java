@@ -142,8 +142,8 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
 
 		imageConverted.delete();
 		imageCropped.delete();
-		File f1 = new File(this.getLegacyDir(), FilenameUtils.getBaseName(file.getName()) + "-01.xml");
-		File f2 = new File(this.getLegacyDir(), FilenameUtils.getBaseName(file.getName()) + "-02.xml");
+		File f1 = new File(this.getLegacyDir(), FilenameUtils.getBaseName(file.getName()) + ".pmes");
+		File f2 = new File(this.getLegacyDir(), FilenameUtils.getBaseName(file.getName()) + ".fmes");
 		f1.createNewFile();
 		f2.createNewFile();
 		FileUtils.write(f1, patientMeasurement);
