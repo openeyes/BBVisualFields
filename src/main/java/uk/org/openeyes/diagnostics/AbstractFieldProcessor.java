@@ -132,12 +132,11 @@ public abstract class AbstractFieldProcessor {
 	 * @return 
 	 */
 	public String getHumphreyMeasurement(File xmlFile, String patientRef,
-			String measurementRef, FieldReport fieldReport,
-			String encodedData, String encodedDataThumb) throws IOException {
+			FieldReport fieldReport, String encodedData, 
+			String encodedDataThumb) throws IOException {
 		
 		BASE64Encoder encoder = new BASE64Encoder();
 		String reportText = "<MeasurementVisualFieldHumphrey><patient_id value=\"" + patientRef + "\"/>"
-				+ "<patient_measurement_id value=\"" + measurementRef + "\"/>"
 				+ "<image_scan_data contentType=\"text/html\" value=\"" + encodedData
 				+ "\"/>" + "<image_scan_crop_data value=\"" + encodedDataThumb + "\"/>"
 				+ "<study_datetime value=\"" + fieldReport.getStudyDate() + " " + fieldReport.getStudyTime() + "\"/>"
@@ -331,38 +330,69 @@ public abstract class AbstractFieldProcessor {
 			DocumentBuilder builder = builderFactory.newDocumentBuilder();
 			Document document = builder.parse(file);
 			XPath xPath = XPathFactory.newInstance().newXPath();
-			// define xpath expressions for data values:
-			String root = "/CZM-XML/DataSet/CZM_HFA_EMR_IOD/";
-			String patientRoot = root + "Patient_M/";
-			String machineRoot = root + "CZM_HFA_Series_M/";
-			String imageRoot = root + "ReferencedImage_M/";
-			String dateTimeRoot = root + "GeneralStudy_M/";
-			String eyeRoot = root + "GeneralSeries_M/";
+			if ("CZM-XML".equals(document.getDocumentElement().getNodeName())) {
+				// define xpath expressions for data values:
+				String root = "/CZM-XML/DataSet/CZM_HFA_EMR_IOD/";
+				String patientRoot = root + "Patient_M/";
+				String machineRoot = root + "CZM_HFA_Series_M/";
+				String imageRoot = root + "ReferencedImage_M/";
+				String dateTimeRoot = root + "GeneralStudy_M/";
+				String eyeRoot = root + "GeneralSeries_M/";
 
-			String patientId = patientRoot + "patient_id";
-			String patientGivenName = patientRoot + "patients_name/given_name";
-			String patientFamilyName = patientRoot + "patients_name/family_name";
-			String patientDoB = patientRoot + "patients_birth_date";
+				String patientId = patientRoot + "patient_id";
+				String patientGivenName = patientRoot + "patients_name/given_name";
+				String patientFamilyName = patientRoot + "patients_name/family_name";
+				String patientDoB = patientRoot + "patients_birth_date";
 
-			String deviceTestName = machineRoot + "test_name";
-			String deviceTestStrategy = machineRoot + "test_strategy";
+				String deviceTestName = machineRoot + "test_name";
+				String deviceTestStrategy = machineRoot + "test_strategy";
 
-			String deviceTestDate = dateTimeRoot + "study_date";
-			String deviceTestTime = dateTimeRoot + "study_time";
+				String deviceTestDate = dateTimeRoot + "study_date";
+				String deviceTestTime = dateTimeRoot + "study_time";
 
-			String fileReference = imageRoot + "file_reference";
-			String eye = eyeRoot + "laterality";
-			// set the given values, if they exist:
-			metaData.setGivenName(this.evaluate(document, xPath, patientGivenName));
-			metaData.setFamilyName(this.evaluate(document, xPath, patientFamilyName));
-			metaData.setDob(this.evaluate(document, xPath, patientDoB));
-			metaData.setTestDate(this.evaluate(document, xPath, deviceTestDate));
-			metaData.setTestTime(this.evaluate(document, xPath, deviceTestTime));
-			metaData.setTestStrategy(this.evaluate(document, xPath, deviceTestStrategy));
-			metaData.setTestPattern(this.evaluate(document, xPath, deviceTestName));
-			metaData.setPatientId(this.evaluate(document, xPath, patientId));
-			metaData.setFileReference(this.evaluate(document, xPath, fileReference));
-			metaData.setEye(this.evaluate(document, xPath, eye));
+				String fileReference = imageRoot + "file_reference";
+				String eye = eyeRoot + "laterality";
+				// set the given values, if they exist:
+				metaData.setGivenName(this.evaluate(document, xPath, patientGivenName));
+				metaData.setFamilyName(this.evaluate(document, xPath, patientFamilyName));
+				metaData.setDob(this.evaluate(document, xPath, patientDoB));
+				metaData.setTestDate(this.evaluate(document, xPath, deviceTestDate));
+				metaData.setTestTime(this.evaluate(document, xPath, deviceTestTime));
+				metaData.setTestStrategy(this.evaluate(document, xPath, deviceTestStrategy));
+				metaData.setTestPattern(this.evaluate(document, xPath, deviceTestName));
+				metaData.setPatientId(this.evaluate(document, xPath, patientId));
+				metaData.setFileReference(this.evaluate(document, xPath, fileReference));
+				metaData.setEye(this.evaluate(document, xPath, eye));
+			} else if ("HFA_EXPORT".equals(document.getDocumentElement().getNodeName())) {
+				String root = "/HFA_EXPORT/";
+				
+				String patientRoot = root + "PATIENT/";
+				String patientId = this.evaluate(document, xPath, patientRoot + "PATIENT_ID");
+				String patientDob = this.evaluate(document, xPath, patientRoot + "BIRTH_DATE");
+				String patientGivenName = this.evaluate(document, xPath, patientRoot + "GIVEN_NAME");
+				String patientFamilyName = this.evaluate(document, xPath, patientRoot + "LAST_NAME");
+				
+				String studyRoot = patientRoot + "STUDY/";
+				String visitDate = this.evaluate(document, xPath, studyRoot + "VISIT_DATE");
+				String seriesRoot = studyRoot + "SERIES/";
+				String fieldExam = seriesRoot + "FIELD_EXAM/";
+				String examTime = this.evaluate(document, xPath, fieldExam + "EXAM_TIME");
+				String staticTest = fieldExam + "STATIC_TEST/";
+				String pattern = this.evaluate(document, xPath, staticTest + "TEST_PATTERN");
+				String strategy = this.evaluate(document, xPath, staticTest + "TEST_STRATEGY");
+				// laterality not stored in this version of the file; obtain it via file name
+				String eye = "left";
+				// OS/OD == oculus sinister/dexter = left/right
+				if (file.getName().contains("_OD_")) {
+					eye = "right";
+				}
+				
+				System.out.println("PID: " + patientId + ", fam. name: " + patientFamilyName
+						+ ", given name: " + patientGivenName + ", DoB: " + patientDob
+						 + ", Visit date: " + visitDate + ", exam time: " + examTime
+						 + ", Pattern: " + this.getPattern(pattern) + ", Strategy: " + this.getStrategy(strategy)
+						+ ", eye: " + eye);
+			}
 		} catch (SAXException e) {
 			// nothing to do
 			e.printStackTrace();
@@ -374,6 +404,69 @@ public abstract class AbstractFieldProcessor {
 			pcex.printStackTrace();
 		}
 		return metaData;
+	}
+	
+	/**
+	 * 
+	 * mysql> select * from ophinvisualfields_pattern;
+	+----+--------------+
+	| id | name         |
+	+----+--------------+
+	|  1 | 10-2         |
+	|  2 | S S-24-2 Thr |
+	|  3 | 30-2 Thu     |
+	|  4 | Macula       |
+	|  5 | 60-4         |
+	|  6 | Nasal Step   |
+	+----+--------------+
+	6 rows in set (0.00 sec)
+
+	 * 
+	 * @param pattern
+	 * @return 
+	 */
+	private String getPattern(String pattern) {
+		String val = null;
+		int result = Integer.parseInt(pattern);
+		switch(result) {
+				case 2:
+					val = "30-2 Thu";
+					break;
+				case 10:
+					val = "10-2";
+					break;
+				case 25:
+					val = "S S-24-2 Thr";
+					break;
+				case 30:
+					val = "60-4";
+					break;
+		}
+		return val;
+	}
+	
+	/**
+	 * 
+	mysql> select * from ophinvisualfields_strategy;
+	+----+----------------+
+	| id | name           |
+	+----+----------------+
+	|  1 | SITA-Standard  |
+	|  2 | SITA-Fast      |
+	|  3 | Full-Threshold |
+	+----+----------------+
+	 * @param pattern
+	 * @return 
+	 */
+	private String getStrategy(String strategy) {
+		String val = null;
+		int result = Integer.parseInt(strategy);
+		switch(result) {
+				case 4:
+					val = "SITA-Standard";
+					break;
+		}
+		return val;
 	}
 
 	/**
