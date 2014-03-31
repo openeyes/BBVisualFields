@@ -249,37 +249,35 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
 
 		// TODO poss use jaxb etc.
-		String patientMeasurement = this.getPatientMeasurement(Integer.toString(patientRef));
+//		String patientMeasurement = this.getPatientMeasurement(Integer.toString(patientRef));
 
-		int code = sender.send("PatientMeasurement", patientMeasurement);
-		String location = ((HttpTransfer) sender).getLocation();
+//		int code = sender.send("PatientMeasurement", patientMeasurement);
+//		String location = ((HttpTransfer) sender).getLocation();
 		// get the resultant ID from the location header:
-		Pattern pattern = Pattern.compile("^.*/PatientMeasurement/([0-9]*)/.*$");
-		Matcher matcher = pattern.matcher(location);
+//		Pattern pattern = Pattern.compile("^.*/PatientMeasurement/([0-9]*)/.*$");
+//		Matcher matcher = pattern.matcher(location);
 
-		System.out.println("Location for measurement: " + location);
+//		System.out.println("Location for measurement: " + location);
 		// TODO poss use jaxb etc.
-		if (code == 201 && matcher.matches()) {
-			String reportText = this.getHumphreyMeasurement(xmlFile,
-					Integer.toString(patientRef), matcher.group(1), fieldReport,
-					encodedData, encodedDataThumb);
-			code = sender.send("MeasurementVisualFieldHumphrey", reportText);
-			this.generateCommsLog(code,
-					DbUtils.FHIR_RESOURCE_TYPE_DIAGNOSTIC_REPORT, fieldReport,
-					sender.getResponse());
+//		if (code == 201 && matcher.matches()) {
+		String reportText = this.getHumphreyMeasurement(xmlFile,
+				Integer.toString(patientRef), fieldReport,
+				encodedData, encodedDataThumb);
+		int code = sender.send("MeasurementVisualFieldHumphrey", reportText);
+		this.generateCommsLog(code,
+				DbUtils.FHIR_RESOURCE_TYPE_DIAGNOSTIC_REPORT, fieldReport,
+				sender.getResponse());
 
-			if (code == 201) {
-				boolean moved = file.renameTo(new File(this.archiveDir, file.getName()));
-				if (!moved) {
-					System.err.println("Unable to move " + file.getAbsolutePath());
-				}
-			} else {
-				System.out.println("ERROR: " + code + ", " + sender.getResponse());
-				// TODO cleanup - what was the error?
+		if (code == 201) {
+			boolean moved = file.renameTo(new File(this.archiveDir, file.getName()));
+			if (!moved) {
+				System.err.println("Unable to move " + file.getAbsolutePath());
 			}
 		} else {
-			// deal with the error
+			System.out.println("ERROR: " + code + ", " + sender.getResponse());
+			// TODO cleanup - what was the error?
 		}
+		
 		imageConverted.delete();
 		imageCropped.delete();
 
