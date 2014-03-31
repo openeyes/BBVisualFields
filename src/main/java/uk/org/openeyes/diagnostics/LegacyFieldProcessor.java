@@ -137,7 +137,7 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
 		// write this to file:
 		String patientMeasurement = this.getPatientMeasurement("__OE_PATIENT_ID_" + fieldReport.getPatientId() + "__");
 		// now write this one:
-		String reportText = this.getHumphreyMeasurement(xmlFile, "__OE_PATIENT_ID__", "__OE_PATIENT_MEASUREMENT_REF__", fieldReport, encodedData, encodedDataThumb);
+		String reportText = this.getHumphreyMeasurement(xmlFile, "__OE_PATIENT_ID__", fieldReport, encodedData, encodedDataThumb);
 //		String reportText = this.getHumphreyMeasurement(xmlFile, "__OE_" + fieldReport.getPatientId() + "__", null, fieldReport, "", "");
 
 		imageConverted.delete();
