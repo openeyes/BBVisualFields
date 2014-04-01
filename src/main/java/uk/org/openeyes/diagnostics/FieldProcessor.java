@@ -5,14 +5,10 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.net.ConnectException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.hl7.fhir.Patient;
-import org.w3.x2005.atom.ContentType;
-import org.w3.x2005.atom.EntryType;
-import org.w3.x2005.atom.FeedDocument;
 import sun.misc.BASE64Encoder;
 import uk.org.openeyes.diagnostics.db.DbUtils;
 import uk.org.openeyes.diagnostics.db.FieldReport;
@@ -21,14 +17,20 @@ import uk.org.openeyes.diagnostics.db.FieldReport;
  * Temporary class to watch for humphrey field images.
  */
 public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
-	
-	/** Host to send reports to. */
+
+	/**
+	 * Host to send reports to.
+	 */
 	private String host = "localhost";
-	/** How long to wait (seconds) between checking for new reports. */
+	/**
+	 * How long to wait (seconds) between checking for new reports.
+	 */
 	private int interval = 1;
-	/** Port number to send reports on. */
+	/**
+	 * Port number to send reports on.
+	 */
 	private int port = 80;
-	
+
 	/**
 	 *
 	 */
@@ -116,36 +118,14 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 
 	/**
 	 *
-	 * @param pid
+	 * @param file
 	 * @return
 	 */
-	private Patient getPatient(HumphreyFieldMetaData metaData) {
-		Patient p = null;
-		FhirUtils fhirUtils = new FhirUtils();
-		HttpTransfer sender = fhirUtils.readPatient(this.getHost(), this.getPort(), metaData);
-		try {
-			FeedDocument doc = FeedDocument.Factory.parse(sender.getResponse());
-			EntryType entry = doc.getFeed().getEntryArray(0);
-			ContentType content = entry.getContentArray(0);
-			p = content.getPatient();
-			// reference to patient, last part is ID:
-			p.setId(FilenameUtils.getBaseName(entry.getIdArray(0).getStringValue()));
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			System.exit(1);
-		}
-		return p;
-	}
-	
-	/**
-	 * 
-	 * @param file
-	 * @return 
-	 */
+	@Override
 	public void processFile(File file) {
 
 		this.generateDirectories(new File[]{this.dir, this.archiveDir,
-			this.errDir});
+					this.errDir});
 		System.out.println("Processing " + file.getName());
 		try {
 			// parse XML file:
@@ -192,16 +172,30 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 				System.out.println("records do NOT match; moving to " + this.errDir);
 				return;
 			}
-
-			// get the report's patient id and find out if they exist:
-			Patient patient = this.getPatient(metaData);
-			if (patient == null) {
-				// TODO
-				System.out.println("Could not find patient " + metaData.getPatientId());
+			System.out.println("records match");
+			// measurement report text:
+			String reportText = null;
+			try {
+				// get the report's patient id and find out if they exist:
+				Patient patient = new FhirUtils().readPatient(this.getHost(), this.getPort(), metaData);
+				if (patient == null) {
+					// TODO the patient is not found; move to error directory
+				} else {
+					reportText = this.generateMeasurementText(patient.getId(),
+							file, imageFile, report);
+				}
+				this.transferHumphreyVisualField(reportText,report, file);
+			} catch(ConnectException cex) {
+				cex.printStackTrace();
+				if (reportText == null) {
+					// mark the patient ID (or ack of) in the report text:
+					reportText = this.generateMeasurementText("__NO_PATIENT_ID__",
+							file, imageFile, report);
+				}
+				// mark the message as not having been sent and re-try at a later date:
+				// TODO code here
 				return;
 			}
-			System.out.println("records match");
-			this.transferHumphreyVisualField(Integer.parseInt(patient.getId()), file, imageFile, report);
 			File moveToFile = new File(this.archiveDir, imageFile.getName());
 			imageFile.renameTo(moveToFile);
 			// don't use boolean result, not always consistent, just check if new file exists:
@@ -222,20 +216,19 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 			fnfex.printStackTrace();
 		}
 	}
-
+	
 	/**
-	 * Transfer the specified report.
-	 *
+	 * 
 	 * @param patientRef
-	 * @param file
 	 * @param xmlFile
+	 * @param file
 	 * @param fieldReport
+	 * @return
+	 * @throws IOException 
 	 */
-	private void transferHumphreyVisualField(int patientRef, File xmlFile, File file,
-			FieldReport fieldReport) throws IOException {
-		HttpTransfer sender = new HttpTransfer();
-		sender.setHost(this.getHost());
-		sender.setPort(this.getPort());
+	private String generateMeasurementText(String patientRef, File xmlFile,
+			File file, FieldReport fieldReport) 
+		throws IOException {
 
 		// execute the operation
 		File imageConverted = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + ".gif");
@@ -249,38 +242,41 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		fis = new FileInputStream(imageCropped);
 		String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
 
-		// TODO poss use jaxb etc.
-//		String patientMeasurement = this.getPatientMeasurement(Integer.toString(patientRef));
-
-//		int code = sender.send("PatientMeasurement", patientMeasurement);
-//		String location = ((HttpTransfer) sender).getLocation();
-		// get the resultant ID from the location header:
-//		Pattern pattern = Pattern.compile("^.*/PatientMeasurement/([0-9]*)/.*$");
-//		Matcher matcher = pattern.matcher(location);
-
-//		System.out.println("Location for measurement: " + location);
-		// TODO poss use jaxb etc.
-//		if (code == 201 && matcher.matches()) {
 		String reportText = this.getHumphreyMeasurement(xmlFile,
-				Integer.toString(patientRef), fieldReport,
+				patientRef, fieldReport,
 				encodedData, encodedDataThumb);
-		int code = sender.send("MeasurementVisualFieldHumphrey", reportText);
-		this.generateCommsLog(code,
-				DbUtils.FHIR_RESOURCE_TYPE_DIAGNOSTIC_REPORT, fieldReport,
-				sender.getResponse());
-
-		if (code == 201) {
-			boolean moved = file.renameTo(new File(this.archiveDir, file.getName()));
-			if (!moved) {
-				System.err.println("Unable to move " + file.getAbsolutePath());
-			}
-		} else {
-			System.out.println("ERROR: " + code + ", " + sender.getResponse());
-			// TODO cleanup - what was the error?
-		}
 		
 		imageConverted.delete();
 		imageCropped.delete();
+		return reportText;
+	}
+
+	/**
+	 * Transfer the specified report.
+	 *
+	 * @param patientRef
+	 * @param file
+	 * @param xmlFile
+	 * @param fieldReport
+	 */
+	private void transferHumphreyVisualField(String reportText, FieldReport fieldReport, File file) throws IOException {
+		HttpTransfer sender = new HttpTransfer();
+		sender.setHost(this.getHost());
+		sender.setPort(this.getPort());
+		int code = sender.send("MeasurementVisualFieldHumphrey", reportText);
+		if (code > -1) {
+			this.generateCommsLog(code,
+					DbUtils.FHIR_RESOURCE_TYPE_DIAGNOSTIC_REPORT, fieldReport,
+					sender.getResponse());
+			if (code == 201) {
+				boolean moved = file.renameTo(new File(this.archiveDir, file.getName()));
+				if (!moved) {
+					System.err.println("Unable to move " + file.getAbsolutePath());
+				}
+			}
+		} else {
+			// failed to send - binary exponential backoff algorithm
+		}
 
 	}
 
@@ -307,5 +303,4 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 	public void setPort(int port) {
 		this.port = port;
 	}
-	
 }

@@ -7,6 +7,7 @@ package uk.org.openeyes.diagnostics;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.ConnectException;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -18,7 +19,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
-
 
 /**
  *
@@ -69,7 +69,7 @@ public class HttpTransfer {
 	 * @param data
 	 * @return
 	 */
-	public int send(String resourceType, String data) {
+	public int send(String resourceType, String data) throws ConnectException {
 		int result = -1;
 		String strURL = "http://" + host + ":" + port + "/api/"
 				+ resourceType + "?_format=xml&resource_type="
@@ -98,6 +98,9 @@ public class HttpTransfer {
 				this.location = headers[0];
 			}
 
+		} catch (ConnectException e) {
+			// TODO - binary exponential backoff algorithm
+			throw e;
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -112,7 +115,8 @@ public class HttpTransfer {
 	 * @param requestParams
 	 * @return
 	 */
-	public int read(String resourceType, String jsonType, String requestParams) {
+	public int read(String resourceType, String jsonType, String requestParams)
+			throws ConnectException {
 		DefaultHttpClient http = new DefaultHttpClient();
 
 		int result = -1;
@@ -124,7 +128,7 @@ public class HttpTransfer {
 		UsernamePasswordCredentials creds = new UsernamePasswordCredentials(
 				"admin", "admin");
 		get.addHeader(BasicScheme.authenticate(creds, "US-ASCII", false));
-		
+
 		try {
 			get.addHeader("Content-type", "text/xml");
 			DefaultHttpClient httpclient = new DefaultHttpClient();
@@ -137,6 +141,9 @@ public class HttpTransfer {
 			this.response = writer.toString();
 			EntityUtils.consume(entity2);
 			System.out.println("Get result: " + new BufferedInputStream(entity2.getContent()));
+		} catch (ConnectException e) {
+			// TODO - binary exponential backoff algorithm
+			throw e;
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
