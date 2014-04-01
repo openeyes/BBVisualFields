@@ -45,8 +45,6 @@ import uk.org.openeyes.diagnostics.db.HibernateUtil;
  */
 public abstract class AbstractFieldProcessor {
 	
-	/** Default path. */
-	public static final String DEFAULT_PATH = "C:\\Program Files\\ImageMagick-6.8.8-Q16";
 	/** Default hos num regex. */
 	public static final String DEFAULT_REGEX = "^([0-9]{1,9})$";
 	
@@ -59,7 +57,7 @@ public abstract class AbstractFieldProcessor {
 	/** Hospital/PID regex; PIDs that fail this pattern will be rejected. */
 	protected String regex = AbstractFieldProcessor.DEFAULT_REGEX;
 	/** Some OSs require the path setting for ImageMagick. */
-	protected String globalSearchPath = AbstractFieldProcessor.DEFAULT_PATH;
+	protected String globalSearchPath = null;
 	/** Defaults when no CLI options given for image crop & scale. */
 	public static final int[] DEFAULT_IMAGE_OPTIONS
 			= {1368, 666, 662, 658, 300, 306};
@@ -102,7 +100,21 @@ public abstract class AbstractFieldProcessor {
 	protected void transformImages(File original, File image1, File image2) {
 		
 		try {
-			ProcessStarter.setGlobalSearchPath(this.globalSearchPath);
+			if (null != this.globalSearchPath) {
+				ProcessStarter.setGlobalSearchPath(this.globalSearchPath);
+			}
+			ConvertCmd command = new ConvertCmd();
+			IMOperation op = new IMOperation();
+			op.addImage(original.getAbsolutePath());
+			op.format("GIF").addImage(image1.getAbsolutePath());
+			command.run(op);
+			op.addImage(image1.getAbsolutePath());
+			op.crop(this.getImageOptions()[2], this.getImageOptions()[3],
+					this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
+			op.format("GIF").addImage(image2.getAbsolutePath());
+			command.run(op);
+			/* If the above does not run on Windows, this will: 
+			 ProcessStarter.setGlobalSearchPath(this.globalSearchPath);
 			ConvertCmd command = new ConvertCmd();
 			IMOperation op = new IMOperation();
 			op.addImage(original.getAbsolutePath());
@@ -116,6 +128,7 @@ public abstract class AbstractFieldProcessor {
 					this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
 			op2.format("GIF").addImage(image2.getAbsolutePath());
 			command.run(op2);
+			 */
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -123,15 +136,6 @@ public abstract class AbstractFieldProcessor {
 	
 	public String getRegex() {
 		return regex;
-	}
-	/**
-	 * 
-	 * @param patientRef
-	 * @return 
-	 */
-	public String getPatientMeasurement(String patientRef) {
-		return "<PatientMeasurement><patient_id value=\""
-				+ patientRef + "\"/><measurement_type value=\"MeasurementVisualFieldHumphrey\"/></PatientMeasurement>";
 	}
 	
 	/**
@@ -148,13 +152,13 @@ public abstract class AbstractFieldProcessor {
 		
 		BASE64Encoder encoder = new BASE64Encoder();
 		String reportText = "<MeasurementVisualFieldHumphrey><patient_id value=\"" + patientRef + "\"/>"
-				+ "<image_scan_data contentType=\"text/html\" value=\"" + encodedData
-				+ "\"/>" + "<image_scan_crop_data value=\"" + encodedDataThumb + "\"/>"
 				+ "<study_datetime value=\"" + fieldReport.getStudyDate() + " " + fieldReport.getStudyTime() + "\"/>"
 				+ "<eye value=\"" + fieldReport.getEye() + "\"/>"
 				+ "<file_reference value=\"" + fieldReport.getFileReference() + "\"/>"
 				+ "<pattern value=\"" + fieldReport.getTestName() + "\"/>"
-				+ "<strategy value=\"" + fieldReport.getTestType() + "\"/>";
+				+ "<strategy value=\"" + fieldReport.getTestType() + "\"/>"
+				+ "<image_scan_data contentType=\"text/html\" value=\"" + encodedData
+				+ "\"/>" + "<image_scan_crop_data value=\"" + encodedDataThumb + "\"/>";
 		if (this.isIncludeSource()) {
 			reportText += "<xml_file_data value=\"" + encoder.encode(IOUtils.toByteArray(new FileInputStream(xmlFile))) + "\"/>";
 		}

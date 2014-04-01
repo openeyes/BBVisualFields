@@ -132,6 +132,7 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 			p.setId(FilenameUtils.getBaseName(entry.getIdArray(0).getStringValue()));
 		} catch (Exception ex) {
 			ex.printStackTrace();
+			System.exit(1);
 		}
 		return p;
 	}

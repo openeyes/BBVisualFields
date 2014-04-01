@@ -32,8 +32,7 @@ public class LegacyFieldProcessorApp {
             "Regular expression to determine valid patient identifiers."
 			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_REGEX);
     Option optionGlobalSearchPath = new Option("g", "global-search-path", true,
-            "Specify search path for applications (like ImageMagick, for example)."
-			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_PATH);
+            "Specify search path for applications (like ImageMagick, for example).");
     Option optionErrDir = new Option("e", "errDir", true,
             "Dirctory to move files that that failed validation.");
     Option optionArchiveDir = new Option("a", "archive-dir", true,
@@ -43,7 +42,7 @@ public class LegacyFieldProcessorApp {
 			+ "compatible resources and write them to file in the specified"
 			+ " directory, the purpose being to run a separate script to" 
 			+ " transfer them.");
-    Option optionImageOpts = new Option("g", "image-options", true,
+    Option optionImageOpts = new Option("o", "image-options", true,
             "Specify location and segment of humphrey test to extract, along with"
 			+ " scaling parameters. Format: x,y,w,h,x1,y1 where x,y is the"
 			+ " the location to cut image with wxh size, scaled to x1,y1.");
@@ -107,7 +106,7 @@ public class LegacyFieldProcessorApp {
           System.exit(1);
         }
       }
-      if (cmd.hasOption("g") || cmd.hasOption("image-options")) {
+      if (cmd.hasOption("o") || cmd.hasOption("image-options")) {
         watcher.setImageOptions(cmd.getOptionValue("image-options"));
       }
       if (cmd.hasOption("x") || cmd.hasOption("xml-source")) {

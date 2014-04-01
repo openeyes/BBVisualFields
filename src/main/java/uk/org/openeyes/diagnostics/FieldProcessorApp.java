@@ -36,8 +36,7 @@ public class FieldProcessorApp {
             "Regular expression to determine valid patient identifiers."
 			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_REGEX);
     Option optionGlobalSearchPath = new Option("g", "global-search-path", true,
-            "Specify search path for applications (like ImageMagick, for example)."
-			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_PATH);
+            "Specify search path for applications (like ImageMagick, for example).");
     Option optionInDir = new Option("d", "dir", true,
             "Directory to watch for new files.");
     Option optionDupDir = new Option("u", "duplicates", true,
@@ -46,7 +45,7 @@ public class FieldProcessorApp {
             "Dirctory to move files that that failed validation.");
     Option optionArchiveDir = new Option("a", "archive-dir", true,
             "Directory to move sucessfully transferred files to.");
-    Option optionImageOpts = new Option("g", "image-options", true,
+    Option optionImageOpts = new Option("o", "image-options", true,
             "Specify location and segment of humphrey test to extract, along with"
 			+ " scaling parameters. Format: x,y,w,h,x1,y1 where x,y is the"
 			+ " the location to cut image with wxh size, scaled to x1,y1."
@@ -118,7 +117,7 @@ public class FieldProcessorApp {
           System.exit(1);
         }
       }
-      if (cmd.hasOption("g") || cmd.hasOption("image-options")) {
+      if (cmd.hasOption("o") || cmd.hasOption("image-options")) {
         watcher.setImageOptions(cmd.getOptionValue("image-options"));
       }
       if (cmd.hasOption("x") || cmd.hasOption("xml-source")) {

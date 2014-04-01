@@ -4,12 +4,21 @@
  */
 package uk.org.openeyes.diagnostics;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
+import java.io.StringWriter;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
 
 /**
  *
@@ -65,18 +74,29 @@ public class HttpTransfer {
 		String strURL = "http://" + host + ":" + port + "/api/"
 				+ resourceType + "?_format=xml&resource_type="
 				+ resourceType;
-		PostMethod post = new PostMethod(strURL);
+		HttpPost post = new HttpPost(strURL);
 		try {
 			data = data.replace("fhir:", "");
-			StringRequestEntity requestEntity = new StringRequestEntity(data);
-			post.setRequestEntity(requestEntity);
-			post.setRequestHeader("Content-type",
-					"text/xml");
-			HttpClient httpclient = new HttpClient();
+			StringEntity entity = new StringEntity(data);
+			post.setEntity(entity);
+			post.addHeader("Content-type", "text/xml");
+			UsernamePasswordCredentials creds = new UsernamePasswordCredentials(
+					"admin", "admin");
+			post.addHeader(BasicScheme.authenticate(creds, "US-ASCII", false));
+			DefaultHttpClient httpclient = new DefaultHttpClient();
 
-			result = httpclient.executeMethod(post);
-			this.response = post.getResponseBodyAsString();
-			this.location = post.getResponseHeader("Location");
+			CloseableHttpResponse httpResponse = httpclient.execute(post);
+			result = httpResponse.getStatusLine().getStatusCode();
+			HttpEntity entity2 = httpResponse.getEntity();
+			StringWriter writer = new StringWriter();
+			IOUtils.copy(entity2.getContent(), writer);
+			this.response = writer.toString();
+			EntityUtils.consume(entity2);
+			System.out.println("Post result: " + new BufferedInputStream(entity2.getContent()));
+			Header[] headers = post.getHeaders("Location");
+			if (headers.length > 0) {
+				this.location = headers[0];
+			}
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -93,20 +113,30 @@ public class HttpTransfer {
 	 * @return
 	 */
 	public int read(String resourceType, String jsonType, String requestParams) {
+		DefaultHttpClient http = new DefaultHttpClient();
+
 		int result = -1;
 		String strURL = "http://" + host + ":" + port + "/api/" + resourceType + "?resource_type=Patient&_format=xml";
 		if (requestParams != null) {
 			strURL += "&" + requestParams;
 		}
-		GetMethod get = new GetMethod(strURL);
+		HttpGet get = new HttpGet(strURL);
+		UsernamePasswordCredentials creds = new UsernamePasswordCredentials(
+				"admin", "admin");
+		get.addHeader(BasicScheme.authenticate(creds, "US-ASCII", false));
+		
 		try {
-			get.setRequestHeader("Content-type",
-					"text/xml");
-			HttpClient httpclient = new HttpClient();
+			get.addHeader("Content-type", "text/xml");
+			DefaultHttpClient httpclient = new DefaultHttpClient();
 
-			result = httpclient.executeMethod(get);
-			this.response = get.getResponseBodyAsString();
-
+			CloseableHttpResponse httpResponse = httpclient.execute(get);
+			result = httpResponse.getStatusLine().getStatusCode();
+			HttpEntity entity2 = httpResponse.getEntity();
+			StringWriter writer = new StringWriter();
+			IOUtils.copy(entity2.getContent(), writer);
+			this.response = writer.toString();
+			EntityUtils.consume(entity2);
+			System.out.println("Get result: " + new BufferedInputStream(entity2.getContent()));
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
