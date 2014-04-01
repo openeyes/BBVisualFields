@@ -30,6 +30,8 @@ public class LegacyFieldProcessorApp {
             "Regular expression to determine valid patient identifiers.");
     Option optionInDir = new Option("d", "dir", true,
             "Directory to watch for new files.");
+    Option optionGlobalSearchPath = new Option("g", "global-search-path", true,
+            "Specify search path for applications (like ImageMagick, for example).");
     Option optionErrDir = new Option("e", "errDir", true,
             "Dirctory to move files that that failed validation.");
     Option optionArchiveDir = new Option("a", "archive-dir", true,
@@ -53,6 +55,7 @@ public class LegacyFieldProcessorApp {
     options.addOption(optionInDir);
     options.addOption(optionArchiveDir);
     options.addOption(optionImageOpts);
+    options.addOption(optionGlobalSearchPath);
     options.addOption(optionLegacy);
     options.addOption(optionSource);
     options.addOption(optionHelp);
@@ -74,6 +77,9 @@ public class LegacyFieldProcessorApp {
       }
       if (cmd.hasOption("r") || cmd.hasOption("regex")) {
         watcher.setRegex(cmd.getOptionValue("regex"));
+      }
+      if (cmd.hasOption("g") || cmd.hasOption("global-search-path")) {
+        watcher.setGlobalSearchPath(cmd.getOptionValue("global-search-path"));
       }
       if (cmd.hasOption("e") || cmd.hasOption("errDir")) {
         watcher.setErrDir(new File(cmd.getOptionValue("errDir")));

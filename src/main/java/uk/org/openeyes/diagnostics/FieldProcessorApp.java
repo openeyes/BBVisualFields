@@ -34,6 +34,8 @@ public class FieldProcessorApp {
             "Time in seconds to sleep between checking. Must be > 0");
     Option optionPort = new Option("p", "port", true,	
             "Port to connect to on server.");
+    Option optionGlobalSearchPath = new Option("g", "global-search-path", true,
+            "Specify search path for applications (like ImageMagick, for example).");
     Option optionInDir = new Option("d", "dir", true,
             "Directory to watch for new files.");
     Option optionDupDir = new Option("u", "duplicates", true,
@@ -56,6 +58,7 @@ public class FieldProcessorApp {
     options.addOption(optionFile);
     options.addOption(optionInDir);
     options.addOption(optionArchiveDir);
+    options.addOption(optionGlobalSearchPath);
     options.addOption(optionHost);
     options.addOption(optionInterval);
     options.addOption(optionImageOpts);
@@ -73,6 +76,9 @@ public class FieldProcessorApp {
       }
       if (cmd.hasOption("s") || cmd.hasOption("host")) {
         watcher.setHost(cmd.getOptionValue("host"));
+      }
+      if (cmd.hasOption("g") || cmd.hasOption("global-search-path")) {
+        watcher.setGlobalSearchPath(cmd.getOptionValue("global-search-path"));
       }
       if (cmd.hasOption("d") || cmd.hasOption("dir")) {
         watcher.setDir(new File(cmd.getOptionValue("dir")));
