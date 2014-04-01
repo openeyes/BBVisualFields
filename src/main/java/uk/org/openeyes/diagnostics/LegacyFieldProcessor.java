@@ -124,29 +124,29 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
 			FieldReport fieldReport) throws IOException {
 
 		// execute the operation
-		File imageConverted = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + ".gif");
-		File imageCropped = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + "-cropped.gif");
+		File imageConverted = new File(file.getParentFile(), 
+				FilenameUtils.getBaseName(file.getName()) + ".gif");
+		File imageCropped = new File(file.getParentFile(), 
+				FilenameUtils.getBaseName(file.getName()) + "-cropped.gif");
 		transformImages(file, imageConverted, imageCropped);
 		BASE64Encoder encoder = new BASE64Encoder();
 		FileInputStream fis = new FileInputStream(imageConverted);
-		String encodedData = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
+		String encodedData = encoder.encode(IOUtils.toByteArray(fis, 
+				fis.available()));
 
 		fis = new FileInputStream(imageCropped);
-		String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
-
-		// write this to file:
-		String patientMeasurement = this.getPatientMeasurement("__OE_PATIENT_ID_" + fieldReport.getPatientId() + "__");
-		// now write this one:
-		String reportText = this.getHumphreyMeasurement(xmlFile, "__OE_PATIENT_ID__", fieldReport, encodedData, encodedDataThumb);
-//		String reportText = this.getHumphreyMeasurement(xmlFile, "__OE_" + fieldReport.getPatientId() + "__", null, fieldReport, "", "");
+		String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, 
+				fis.available()));
+		
+		String reportText = this.getHumphreyMeasurement(xmlFile, 
+				"__OE_PATIENT_ID_" + fieldReport.getPatientId() + "__", 
+				fieldReport, encodedData, encodedDataThumb);
 
 		imageConverted.delete();
 		imageCropped.delete();
-		File f1 = new File(this.getLegacyDir(), FilenameUtils.getBaseName(file.getName()) + ".pmes");
-		File f2 = new File(this.getLegacyDir(), FilenameUtils.getBaseName(file.getName()) + ".fmes");
-		f1.createNewFile();
+		File f2 = new File(this.getLegacyDir(), 
+				FilenameUtils.getBaseName(file.getName()) + ".fmes");
 		f2.createNewFile();
-		FileUtils.write(f1, patientMeasurement);
 		FileUtils.write(f2, reportText);
 
 	}
