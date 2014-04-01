@@ -367,10 +367,6 @@ public abstract class AbstractFieldProcessor {
 				String root = "/HFA_EXPORT/";
 				
 				String patientRoot = root + "PATIENT/";
-				String patientId = this.evaluate(document, xPath, patientRoot + "PATIENT_ID");
-				String patientDob = this.evaluate(document, xPath, patientRoot + "BIRTH_DATE");
-				String patientGivenName = this.evaluate(document, xPath, patientRoot + "GIVEN_NAME");
-				String patientFamilyName = this.evaluate(document, xPath, patientRoot + "LAST_NAME");
 				
 				String studyRoot = patientRoot + "STUDY/";
 				String visitDate = this.evaluate(document, xPath, studyRoot + "VISIT_DATE");
@@ -378,20 +374,24 @@ public abstract class AbstractFieldProcessor {
 				String fieldExam = seriesRoot + "FIELD_EXAM/";
 				String examTime = this.evaluate(document, xPath, fieldExam + "EXAM_TIME");
 				String staticTest = fieldExam + "STATIC_TEST/";
-				String pattern = this.evaluate(document, xPath, staticTest + "TEST_PATTERN");
-				String strategy = this.evaluate(document, xPath, staticTest + "TEST_STRATEGY");
 				// laterality not stored in this version of the file; obtain it via file name
-				String eye = "left";
+				String eye = "L";
 				// OS/OD == oculus sinister/dexter = left/right
 				if (file.getName().contains("_OD_")) {
-					eye = "right";
+					eye = "R";
 				}
+				String fileReference = fieldExam + "/SINGLE_EXAM_IMAGE/IMAGE_FILE_NAME";
 				
-				System.out.println("PID: " + patientId + ", fam. name: " + patientFamilyName
-						+ ", given name: " + patientGivenName + ", DoB: " + patientDob
-						 + ", Visit date: " + visitDate + ", exam time: " + examTime
-						 + ", Pattern: " + this.getPattern(pattern) + ", Strategy: " + this.getStrategy(strategy)
-						+ ", eye: " + eye);
+				metaData.setPatientId(this.evaluate(document, xPath, patientRoot + "PATIENT_ID"));
+				metaData.setDob(this.evaluate(document, xPath, patientRoot + "BIRTH_DATE"));
+				metaData.setGivenName(this.evaluate(document, xPath, patientRoot + "GIVEN_NAME"));
+				metaData.setFamilyName(this.evaluate(document, xPath, patientRoot + "LAST_NAME"));
+				metaData.setEye(eye);
+				metaData.setTestPattern(this.getPattern(this.evaluate(document, xPath, staticTest + "TEST_PATTERN")));
+				metaData.setTestStrategy(this.getStrategy(this.evaluate(document, xPath, staticTest + "TEST_STRATEGY")));
+				metaData.setTestDate(visitDate);
+				metaData.setTestTime(examTime);
+				metaData.setFileReference(this.evaluate(document, xPath, fileReference));
 			}
 		} catch (SAXException e) {
 			// nothing to do
@@ -408,19 +408,16 @@ public abstract class AbstractFieldProcessor {
 	
 	/**
 	 * 
-	 * mysql> select * from ophinvisualfields_pattern;
-	+----+--------------+
-	| id | name         |
-	+----+--------------+
-	|  1 | 10-2         |
-	|  2 | S S-24-2 Thr |
-	|  3 | 30-2 Thu     |
-	|  4 | Macula       |
-	|  5 | 60-4         |
-	|  6 | Nasal Step   |
-	+----+--------------+
-	6 rows in set (0.00 sec)
-
+	 *	+--------------+
+	 *	| name         |
+	 *	+--------------+
+	 *	| 10-2         |
+	 *	| S S-24-2 Thr |
+	 *	| 30-2 Thu     |
+	 *	| Macula       |
+	 *	| 60-4         |
+	 *	| Nasal Step   |
+	 *	+--------------+
 	 * 
 	 * @param pattern
 	 * @return 
@@ -447,14 +444,13 @@ public abstract class AbstractFieldProcessor {
 	
 	/**
 	 * 
-	mysql> select * from ophinvisualfields_strategy;
-	+----+----------------+
-	| id | name           |
-	+----+----------------+
-	|  1 | SITA-Standard  |
-	|  2 | SITA-Fast      |
-	|  3 | Full-Threshold |
-	+----+----------------+
+	 *	+----------------+
+	 *	| name           |
+	 *	+----------------+
+	 *	| SITA-Standard  |
+	 *	| SITA-Fast      |
+	 *	| Full-Threshold |
+	 *	+----------------+
 	 * @param pattern
 	 * @return 
 	 */
