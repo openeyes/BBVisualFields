@@ -24,9 +24,9 @@ import org.apache.commons.io.IOUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hl7.fhir.Patient;
 import org.im4java.core.ConvertCmd;
 import org.im4java.core.IMOperation;
+import org.im4java.process.ProcessStarter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -53,6 +53,8 @@ public abstract class AbstractFieldProcessor {
 	protected File archiveDir;
 	/** Hospital/PID regex; PIDs that fail this pattern will be rejected. */
 	protected String regex = "^([0-9]{1,9})$";
+	/** Some OSs require the path setting for ImageMagick. */
+	protected String globalSearchPath = "C:\\Program Files\\ImageMagick-6.8.8-Q16";
 	/** Defaults when no CLI options given for image crop & scale. */
 	public static final int[] DEFAULT_IMAGE_OPTIONS
 			= {1368, 666, 662, 658, 300, 306};
@@ -95,16 +97,20 @@ public abstract class AbstractFieldProcessor {
 	protected void transformImages(File original, File image1, File image2) {
 		
 		try {
+			ProcessStarter.setGlobalSearchPath(this.globalSearchPath);
 			ConvertCmd command = new ConvertCmd();
 			IMOperation op = new IMOperation();
 			op.addImage(original.getAbsolutePath());
 
 			op.format("GIF").addImage(image1.getAbsolutePath());
 			command.run(op);
-			op.crop(this.getImageOptions()[2], this.getImageOptions()[3],
+			
+			IMOperation op2 = new IMOperation();
+			op2.addImage(image1.getAbsolutePath());
+			op2.crop(this.getImageOptions()[2], this.getImageOptions()[3],
 					this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
-			op.format("GIF").addImage(image2.getAbsolutePath());
-			command.run(op);
+			op2.format("GIF").addImage(image2.getAbsolutePath());
+			command.run(op2);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -278,6 +284,14 @@ public abstract class AbstractFieldProcessor {
 	}
 	public void setRegex(String regex) {
 		this.regex = regex;
+	}
+
+	public String getGlobalSearchPath() {
+		return globalSearchPath;
+	}
+
+	public void setGlobalSearchPath(String globalSearchPath) {
+		this.globalSearchPath = globalSearchPath;
 	}
 
 	/**
