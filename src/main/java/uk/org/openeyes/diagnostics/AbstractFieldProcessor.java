@@ -45,6 +45,11 @@ import uk.org.openeyes.diagnostics.db.HibernateUtil;
  */
 public abstract class AbstractFieldProcessor {
 	
+	/** Default path. */
+	public static final String DEFAULT_PATH = "C:\\Program Files\\ImageMagick-6.8.8-Q16";
+	/** Default hos num regex. */
+	public static final String DEFAULT_REGEX = "^([0-9]{1,9})$";
+	
 	/** Directory to watch for incoming files. */
 	protected File dir;
 	/** Directory to move files to. */
@@ -52,9 +57,9 @@ public abstract class AbstractFieldProcessor {
 	/** Successfully processed reports are moved to this directory. */
 	protected File archiveDir;
 	/** Hospital/PID regex; PIDs that fail this pattern will be rejected. */
-	protected String regex = "^([0-9]{1,9})$";
+	protected String regex = AbstractFieldProcessor.DEFAULT_REGEX;
 	/** Some OSs require the path setting for ImageMagick. */
-	protected String globalSearchPath = "C:\\Program Files\\ImageMagick-6.8.8-Q16";
+	protected String globalSearchPath = AbstractFieldProcessor.DEFAULT_PATH;
 	/** Defaults when no CLI options given for image crop & scale. */
 	public static final int[] DEFAULT_IMAGE_OPTIONS
 			= {1368, 666, 662, 658, 300, 306};

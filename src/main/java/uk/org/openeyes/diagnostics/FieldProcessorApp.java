@@ -28,14 +28,16 @@ public class FieldProcessorApp {
             "Specify XML file to send, then quit (mutually exclusive with -i)");
     Option optionHost = new Option("s", "host", true,
             "Specify server to send messages to.");
-    Option optionRegex = new Option("r", "regex", true,
-            "Regular expression to determine valid patient identifiers.");
     Option optionInterval = new Option("i", "interval", true,
             "Time in seconds to sleep between checking. Must be > 0");
     Option optionPort = new Option("p", "port", true,	
             "Port to connect to on server.");
+    Option optionRegex = new Option("r", "regex", true,
+            "Regular expression to determine valid patient identifiers."
+			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_REGEX);
     Option optionGlobalSearchPath = new Option("g", "global-search-path", true,
-            "Specify search path for applications (like ImageMagick, for example).");
+            "Specify search path for applications (like ImageMagick, for example)."
+			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_PATH);
     Option optionInDir = new Option("d", "dir", true,
             "Directory to watch for new files.");
     Option optionDupDir = new Option("u", "duplicates", true,

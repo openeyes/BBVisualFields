@@ -20,18 +20,20 @@ public class LegacyFieldProcessorApp {
   public static void main(String[] args) {
 
     if (args.length == 0) {
-      System.out.println("Try -h");
+      System.out.println("Error: no options specified. Try -h");
       System.exit(1);
     }
     Options options = new Options();
     Option optionFile = new Option("f", "file", true,
             "Specify XML file to send, then quit (mutually exclusive with -i)");
-    Option optionRegex = new Option("r", "regex", true,
-            "Regular expression to determine valid patient identifiers.");
     Option optionInDir = new Option("d", "dir", true,
             "Directory to watch for new files.");
+    Option optionRegex = new Option("r", "regex", true,
+            "Regular expression to determine valid patient identifiers."
+			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_REGEX);
     Option optionGlobalSearchPath = new Option("g", "global-search-path", true,
-            "Specify search path for applications (like ImageMagick, for example).");
+            "Specify search path for applications (like ImageMagick, for example)."
+			+ " Defaults to " + AbstractFieldProcessor.DEFAULT_PATH);
     Option optionErrDir = new Option("e", "errDir", true,
             "Dirctory to move files that that failed validation.");
     Option optionArchiveDir = new Option("a", "archive-dir", true,
