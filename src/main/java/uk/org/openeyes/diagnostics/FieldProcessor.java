@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ConnectException;
 import org.apache.commons.io.FilenameUtils;
@@ -11,7 +12,10 @@ import org.apache.commons.io.IOUtils;
 import org.hl7.fhir.Patient;
 import sun.misc.BASE64Encoder;
 import uk.org.openeyes.diagnostics.db.DbUtils;
+import uk.org.openeyes.diagnostics.db.FieldError;
+import uk.org.openeyes.diagnostics.db.FieldErrorReport;
 import uk.org.openeyes.diagnostics.db.FieldReport;
+import uk.org.openeyes.diagnostics.db.HibernateUtil;
 
 /**
  * Temporary class to watch for humphrey field images.
@@ -30,6 +34,10 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 	 * Port number to send reports on.
 	 */
 	private int port = 80;
+	/**
+	 * Which directory to place files that failed to send.
+	 */
+	private File outgoingDir;
 
 	/**
 	 *
@@ -166,36 +174,44 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 				this.moveFile(metaData, report, file);
 				return;
 			}
-
-			if (!report.getFieldErrorReports().isEmpty()) {
-				this.moveFile(metaData, report, file);
-				System.out.println("records do NOT match; moving to " + this.errDir);
-				return;
-			}
-			System.out.println("records match");
 			// measurement report text:
 			String reportText = null;
 			try {
 				// get the report's patient id and find out if they exist:
-				Patient patient = new FhirUtils().readPatient(this.getHost(), this.getPort(), metaData);
-				if (patient == null) {
-					// TODO the patient is not found; move to error directory
+				Patient patient = new FhirUtils().readPatient(this.getHost(), 
+						this.getPort(), metaData);
+				if (patient == null) { // not found
+					this.setUnknownOEPatient(report);
 				} else {
 					reportText = this.generateMeasurementText(patient.getId(),
 							file, imageFile, report);
+					this.transferHumphreyVisualField(reportText,report, file);
 				}
-				this.transferHumphreyVisualField(reportText,report, file);
 			} catch(ConnectException cex) {
 				cex.printStackTrace();
 				if (reportText == null) {
-					// mark the patient ID (or ack of) in the report text:
+					// mark the patient ID (or lack of) in the report text:
 					reportText = this.generateMeasurementText("__NO_PATIENT_ID__",
 							file, imageFile, report);
 				}
+//				this.moveFile(metaData, report, file);
 				// mark the message as not having been sent and re-try at a later date:
 				// TODO code here
+				File measurementFile = new File(this.getOutgoingDir(), 
+						FilenameUtils.getBaseName(file.getName()) + ".mes");
+				System.out.println(measurementFile.getAbsolutePath());
+				measurementFile.createNewFile();
+				IOUtils.write(reportText, new FileWriter(measurementFile));
+			}
+
+			if (!report.getFieldErrorReports().isEmpty()) {
+				this.moveFile(metaData, report, file);
+				System.out.println("Error in record; moving " + file.getName()
+						+ " to " + this.errDir);
 				return;
 			}
+			System.out.println("records match");
+			
 			File moveToFile = new File(this.archiveDir, imageFile.getName());
 			imageFile.renameTo(moveToFile);
 			// don't use boolean result, not always consistent, just check if new file exists:
@@ -215,6 +231,24 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		} catch (IOException fnfex) {
 			fnfex.printStackTrace();
 		}
+	}
+	
+	/**
+	 * 
+	 * @param report 
+	 */
+	private void setUnknownOEPatient(FieldReport report) {
+		session = HibernateUtil.getSessionFactory().getCurrentSession();
+		session.getTransaction().begin();
+		// TODO the patient is not found; move to error directory
+		FieldError err = DbUtils.getError(DbUtils.ERROR_UNKOWN_OE_PATIENT);
+		FieldErrorReport errReport = new FieldErrorReport();
+		errReport.setFieldError(err);
+		errReport.setFieldReport(report);
+		session.save(errReport);
+
+		session.refresh(report);
+		session.getTransaction().commit();
 	}
 	
 	/**
@@ -286,6 +320,14 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 
 	public void setHost(String host) {
 		this.host = host;
+	}
+
+	public File getOutgoingDir() {
+		return outgoingDir;
+	}
+
+	public void setOutgoingDir(String outgoingDir) {
+		this.outgoingDir = new File(outgoingDir);
 	}
 
 	public int getInterval() {

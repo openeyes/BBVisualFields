@@ -36,12 +36,15 @@ public class FieldProcessorApp {
             "Directory to watch for new files.");
     Option optionDupDir = new Option("u", "duplicates", true,
             "Duplicate files (successfully transferred) are moved to this directory.");
+    Option optionOutgoing = new Option("t", "outgoing", true,
+            "Directory to place measurement files that were not successfully sent.");
     options.addOption(optionFile);
     options.addOption(optionInDir);
     options.addOption(optionHost);
     options.addOption(optionInterval);
     options.addOption(optionPort);
     options.addOption(optionDupDir);
+    options.addOption(optionOutgoing);
 	FieldProcessor watcher = new FieldProcessor();
 	CommonOptions.parseCommonOptions(watcher, options, args);
     CommandLineParser parser = new PosixParser();
@@ -52,6 +55,9 @@ public class FieldProcessorApp {
       }
       if (cmd.hasOption("s") || cmd.hasOption("host")) {
         watcher.setHost(cmd.getOptionValue("host"));
+      }
+      if (cmd.hasOption("t") || cmd.hasOption("outgoing")) {
+        watcher.setOutgoingDir(cmd.getOptionValue("outgoing"));
       }
       if (cmd.hasOption("p") || cmd.hasOption("port")) {
         String port = cmd.getOptionValue("port");

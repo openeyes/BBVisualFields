@@ -120,7 +120,8 @@ public class HttpTransfer {
 		DefaultHttpClient http = new DefaultHttpClient();
 
 		int result = -1;
-		String strURL = "http://" + host + ":" + port + "/api/" + resourceType + "?resource_type=Patient&_format=xml";
+		String strURL = "http://" + host + ":" + port + "/api/"
+				+ resourceType + "?resource_type=Patient&_format=xml";
 		if (requestParams != null) {
 			strURL += "&" + requestParams;
 		}
@@ -135,12 +136,14 @@ public class HttpTransfer {
 
 			CloseableHttpResponse httpResponse = httpclient.execute(get);
 			result = httpResponse.getStatusLine().getStatusCode();
+			if (result == 500) {
+				throw new ConnectException();
+			}
 			HttpEntity entity2 = httpResponse.getEntity();
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(entity2.getContent(), writer);
 			this.response = writer.toString();
 			EntityUtils.consume(entity2);
-			System.out.println("Get result: " + new BufferedInputStream(entity2.getContent()));
 		} catch (ConnectException e) {
 			// TODO - binary exponential backoff algorithm
 			throw e;

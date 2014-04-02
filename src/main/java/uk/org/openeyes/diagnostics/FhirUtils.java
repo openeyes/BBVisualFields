@@ -36,6 +36,7 @@ import org.hl7.fhir.ResourceReference;
 import org.w3.x2005.atom.ContentType;
 import org.w3.x2005.atom.EntryType;
 import org.w3.x2005.atom.FeedDocument;
+import uk.org.openeyes.diagnostics.db.FieldReport;
 
 /**
  * Class for marshaling and un-marshaling FHIR resources, as well as reading
@@ -280,8 +281,8 @@ public class FhirUtils {
 	 * @param metaData
 	 * @return
 	 */
-	public Patient readPatient(String host, int port, HumphreyFieldMetaData metaData)
-			throws ConnectException {
+	public Patient readPatient(String host, int port,
+			HumphreyFieldMetaData metaData) throws ConnectException {
 		Patient p = null;
 		HttpTransfer sender = new HttpTransfer();
 		String requestParams = "identifier=" + metaData.getPatientId()
