@@ -208,9 +208,12 @@ public abstract class AbstractFieldProcessor {
 	 */
 	protected void moveFile(HumphreyFieldMetaData metaData, FieldReport report,
 			File file) throws IOException {
+		if (!report.getFieldErrorReports().isEmpty()) {
+			System.out.println("Errors detected in " + file.getName() + ":");
+		}
 		for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext();) {
 			FieldErrorReport fer = it.next();
-			System.out.println(fer.getFieldError().getId() + " " + fer.getFieldError().getDescription());
+			System.out.println("\t" + fer.getFieldError().getId() + " " + fer.getFieldError().getDescription());
 		}
 		// in the case of an invalid file reference, we treat a non-existent image as existing:
 		if (!this.errorReportContains(report.getFieldErrorReports(), DbUtils.ERROR_INVALID_FILE_REFERENCE)) {
@@ -482,6 +485,12 @@ public abstract class AbstractFieldProcessor {
 		int result = Integer.parseInt(strategy);
 		switch(result) {
 				case 4:
+					val = "SITA-Standard";
+					break;
+				case 6:
+					val = "SITA-Fast";
+					break;
+				case 11:
 					val = "SITA-Standard";
 					break;
 		}
