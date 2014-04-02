@@ -134,10 +134,6 @@ public abstract class AbstractFieldProcessor {
 		}
 	}
 	
-	public String getRegex() {
-		return regex;
-	}
-	
 	/**
 	 * 
 	 * @param patientRef
@@ -293,6 +289,10 @@ public abstract class AbstractFieldProcessor {
 	}
 	public void setRegex(String regex) {
 		this.regex = regex;
+	}
+	
+	public String getRegex() {
+		return regex;
 	}
 
 	public String getGlobalSearchPath() {
