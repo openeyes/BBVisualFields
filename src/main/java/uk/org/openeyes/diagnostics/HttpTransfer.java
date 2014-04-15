@@ -17,7 +17,9 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 
 /**
@@ -60,16 +62,18 @@ public class HttpTransfer {
 	public void setPort(int port) {
 		this.port = port;
 	}
-
+	
 	/**
-	 *
-	 * @param host
-	 * @param port
+	 * 
 	 * @param resourceType
 	 * @param data
+	 * @param username
+	 * @param password
 	 * @return
+	 * @throws ConnectException 
 	 */
-	public int send(String resourceType, String data) throws ConnectException {
+	public int send(String resourceType, String data, String username,
+			String password) throws ConnectException {
 		int result = -1;
 		String strURL = "http://" + host + ":" + port + "/api/"
 				+ resourceType + "?_format=xml&resource_type="
@@ -81,13 +85,14 @@ public class HttpTransfer {
 			post.setEntity(entity);
 			post.addHeader("Content-type", "text/xml");
 			UsernamePasswordCredentials creds = new UsernamePasswordCredentials(
-					"admin", "admin");
+					username, password);
 			post.addHeader(BasicScheme.authenticate(creds, "US-ASCII", false));
 			DefaultHttpClient httpclient = new DefaultHttpClient();
 
 			CloseableHttpResponse httpResponse = httpclient.execute(post);
 			result = httpResponse.getStatusLine().getStatusCode();
 			HttpEntity entity2 = httpResponse.getEntity();
+                        
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(entity2.getContent(), writer);
 			this.response = writer.toString();
@@ -99,7 +104,7 @@ public class HttpTransfer {
 			}
 
 		} catch (ConnectException e) {
-			// TODO - binary exponential backoff algorithm
+			// TODO - binary exponential backoff algorithm  
 			throw e;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -108,14 +113,19 @@ public class HttpTransfer {
 		}
 		return result;
 	}
-
+	
 	/**
-	 *
+	 * 
 	 * @param resourceType
+	 * @param jsonType
 	 * @param requestParams
+	 * @param username
+	 * @param password
 	 * @return
+	 * @throws ConnectException 
 	 */
-	public int read(String resourceType, String jsonType, String requestParams)
+	public int read(String resourceType, String jsonType, String requestParams,
+			String username, String password)
 			throws ConnectException {
 		DefaultHttpClient http = new DefaultHttpClient();
 
@@ -127,25 +137,25 @@ public class HttpTransfer {
 		}
 		HttpGet get = new HttpGet(strURL);
 		UsernamePasswordCredentials creds = new UsernamePasswordCredentials(
-				"admin", "admin");
+				username, password);
 		get.addHeader(BasicScheme.authenticate(creds, "US-ASCII", false));
 
 		try {
 			get.addHeader("Content-type", "text/xml");
-			DefaultHttpClient httpclient = new DefaultHttpClient();
+			HttpClientBuilder builder = HttpClientBuilder.create();
+			CloseableHttpClient httpclient = builder.build();
 
 			CloseableHttpResponse httpResponse = httpclient.execute(get);
 			result = httpResponse.getStatusLine().getStatusCode();
-			if (result == 500) {
-				throw new ConnectException();
-			}
 			HttpEntity entity2 = httpResponse.getEntity();
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(entity2.getContent(), writer);
 			this.response = writer.toString();
 			EntityUtils.consume(entity2);
+			System.out.println("Post result: " + this.response);
 		} catch (ConnectException e) {
-			// TODO - binary exponential backoff algorithm
+			// this happens when there's no server to connect to
+                    e.printStackTrace();
 			throw e;
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -26,6 +26,16 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 	 * Host to send reports to.
 	 */
 	private String host = "localhost";
+
+	/**
+	 * Username.
+	 */
+	private String authenticationUsername;
+
+	/**
+	 * Password for authentication.
+	 */
+	private String authenticationPassword;
 	/**
 	 * How long to wait (seconds) between checking for new reports.
 	 */
@@ -179,7 +189,10 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 			try {
 				// get the report's patient id and find out if they exist:
 				Patient patient = new FhirUtils().readPatient(this.getHost(), 
-						this.getPort(), metaData);
+						this.getPort(), metaData, this.getAuthenticationUsername(),
+						this.getAuthenticationPassword());
+                                System.out.println("Expecting to import patient: ");
+                                System.out.println("Patient=" + patient);
 				if (patient == null) { // not found
 					this.setUnknownOEPatient(report);
 				} else {
@@ -189,14 +202,14 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 				}
 			} catch(ConnectException cex) {
 				cex.printStackTrace();
+				this.setUnknownOEPatient(report);
 				if (reportText == null) {
 					// mark the patient ID (or lack of) in the report text:
-					reportText = this.generateMeasurementText("__NO_PATIENT_ID__",
+					reportText = this.generateMeasurementText("__OE_PATIENT_ID_"
+							+ report.getPatientId() + "__",
 							file, imageFile, report);
 				}
-//				this.moveFile(metaData, report, file);
 				// mark the message as not having been sent and re-try at a later date:
-				// TODO code here
 				File measurementFile = new File(this.getOutgoingDir(), 
 						FilenameUtils.getBaseName(file.getName()) + ".mes");
 				System.out.println(measurementFile.getAbsolutePath());
@@ -297,7 +310,8 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		HttpTransfer sender = new HttpTransfer();
 		sender.setHost(this.getHost());
 		sender.setPort(this.getPort());
-		int code = sender.send("MeasurementVisualFieldHumphrey", reportText);
+		int code = sender.send("MeasurementVisualFieldHumphrey", reportText,
+				this.authenticationUsername, this.authenticationPassword);
 		if (code > -1) {
 			this.generateCommsLog(code,
 					DbUtils.FHIR_RESOURCE_TYPE_DIAGNOSTIC_REPORT, fieldReport,
@@ -344,5 +358,21 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 
 	public void setPort(int port) {
 		this.port = port;
+	}
+
+	public String getAuthenticationUsername() {
+		return authenticationUsername;
+	}
+
+	public void setAuthenticationUsername(String authenticationUsername) {
+		this.authenticationUsername = authenticationUsername;
+	}
+
+	public String getAuthenticationPassword() {
+		return authenticationPassword;
+	}
+
+	public void setAuthenticationPassword(String authenticationPassword) {
+		this.authenticationPassword = authenticationPassword;
 	}
 }
