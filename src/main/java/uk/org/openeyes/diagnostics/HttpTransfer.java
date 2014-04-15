@@ -97,7 +97,6 @@ public class HttpTransfer {
 			IOUtils.copy(entity2.getContent(), writer);
 			this.response = writer.toString();
 			EntityUtils.consume(entity2);
-			System.out.println("Post result: " + new BufferedInputStream(entity2.getContent()));
 			Header[] headers = post.getHeaders("Location");
 			if (headers.length > 0) {
 				this.location = headers[0];
@@ -152,7 +151,6 @@ public class HttpTransfer {
 			IOUtils.copy(entity2.getContent(), writer);
 			this.response = writer.toString();
 			EntityUtils.consume(entity2);
-			System.out.println("Post result: " + this.response);
 		} catch (ConnectException e) {
 			// this happens when there's no server to connect to
                     e.printStackTrace();
