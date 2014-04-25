@@ -5,8 +5,8 @@
     <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
     <property name="hibernate.connection.driver_class">com.mysql.jdbc.Driver</property>
     <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/field_reports</property>
-    <property name="hibernate.connection.username">root</property>
-    <property name="hibernate.connection.password">pword</property>
+    <property name="hibernate.connection.username">oeuser</property>
+    <property name="hibernate.connection.password">__password__</property>
     <property name="hibernate.current_session_context_class">org.hibernate.context.ThreadLocalSessionContext</property>
     <mapping resource="uk/org/openeyes/diagnostics/db/CommsLog.hbm.xml"/>
     <mapping resource="uk/org/openeyes/diagnostics/db/FieldReport.hbm.xml"/>

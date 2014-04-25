@@ -7,8 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.hibernate.Query;
 import org.hl7.fhir.Patient;
 import sun.misc.BASE64Encoder;
 import uk.org.openeyes.diagnostics.db.DbUtils;
@@ -48,6 +52,10 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 	 * Which directory to place files that failed to send.
 	 */
 	private File outgoingDir;
+	/**
+	 * Time, in minutes for when to send old unsent files.
+	 */
+	private static final int[] BACKOFF_TIMES = {5, 10, 20, 60, 120, 240, 480, 960, 86400};
 
 	/**
 	 *
@@ -56,12 +64,88 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		while (true) {
 			try {
 				this.checkDir();
+                                // check which files need to be sent (again):
+                                this.checkOutgoing();
 				Thread.sleep(this.interval * 1000);
 			} catch (InterruptedException iex) {
 				iex.printStackTrace();
 			}
 		}
 	}
+        
+        /**
+         * Check the outgoing directory and attempt to resend files that
+         * are of a certain file age.
+         * 
+         * 
+         */
+        private void checkOutgoing() {
+            // get file list -  all XML files
+            File[] files = this.outgoingDir.listFiles(new FileFilter() {
+                    public boolean accept(File pathname) {
+                            return pathname.getName().endsWith(".xml");
+                    }
+            });
+            for (File file : files) {
+                    this.checkFile(file);
+            }
+        }
+        
+        /**
+         * 
+         * @param f 
+         */
+        private void checkFile(File f) {
+//            System.out.println("Checking " + f.getName() + " for a resend");
+            
+            session = HibernateUtil.getSessionFactory().getCurrentSession();
+            
+            session.getTransaction().begin();
+            Query query = session.createQuery("from FieldReport where file_name=:file_name");
+            query.setParameter("file_name", f.getName());
+            List list = query.list();
+            FieldReport report = null;
+            if (!list.isEmpty()) {
+              report = (FieldReport) list.get(0);
+            }
+            if (report != null) {
+                long time = ((long)((Calendar.getInstance().getTimeInMillis() - f.lastModified()) / 1000));
+                query = session.createQuery(
+                        "from FieldErrorReport err where field_report_id= :report_id");
+                query.setParameter("report_id", report.getId());
+                int results = query.list().size();
+                if (results > 0) {
+                    int timeDiff = 0;
+                    if (results < FieldProcessor.BACKOFF_TIMES.length) {
+                        timeDiff = FieldProcessor.BACKOFF_TIMES[results-1];
+                    } else {
+                        timeDiff = FieldProcessor.BACKOFF_TIMES[FieldProcessor.BACKOFF_TIMES.length - 1];
+                    }
+//                    System.out.println("time: " + time + ", timeDiff" +  timeDiff);
+                    if (time > timeDiff) {
+                        // move the file back to import directory for re-processing:
+                        File imageFile = new File(this.outgoingDir, report.getFileReference());
+                        File xmlFile = new File(this.outgoingDir, report.getFileName());
+                        HumphreyFieldMetaData metaData = new HumphreyFieldMetaData(this.regex);
+                        // only need certain patient-identifiable fields:
+                        metaData.setDob(report.getDob());
+                        metaData.setFamilyName(report.getLastName());
+                        metaData.setGivenName(report.getFirstName());
+                        metaData.setFileReference(report.getFileReference());
+                        metaData.setPatientId(report.getPatientId());
+                        metaData.setTestStrategy(report.getTestType());
+//                        System.out.println("Scheduling " + f.getName()
+//                                + " for resend...");
+			try {send(metaData, xmlFile, imageFile, report);}
+                        catch(IOException ioex) {
+                            System.err.println("IO Error processing "
+                                    + f.getName() + ": " + ioex.getMessage());
+                        }
+                    }
+                }
+                
+            }
+        }
 
 	/**
 	 *
@@ -185,43 +269,30 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 				return;
 			}
 			// measurement report text:
-			String reportText = null;
-			try {
-				// get the report's patient id and find out if they exist:
-				Patient patient = new FhirUtils().readPatient(this.getHost(), 
-						this.getPort(), metaData, this.getAuthenticationUsername(),
-						this.getAuthenticationPassword());
-                                System.out.println("Expecting to import patient: ");
-                                System.out.println("Patient=" + patient);
-				if (patient == null) { // not found
-					this.setUnknownOEPatient(report);
-				} else {
-					reportText = this.generateMeasurementText(patient.getId(),
-							file, imageFile, report);
-					this.transferHumphreyVisualField(reportText,report, file);
-				}
-			} catch(ConnectException cex) {
-				cex.printStackTrace();
-				this.setUnknownOEPatient(report);
-				if (reportText == null) {
-					// mark the patient ID (or lack of) in the report text:
-					reportText = this.generateMeasurementText("__OE_PATIENT_ID_"
-							+ report.getPatientId() + "__",
-							file, imageFile, report);
-				}
-				// mark the message as not having been sent and re-try at a later date:
-				File measurementFile = new File(this.getOutgoingDir(), 
-						FilenameUtils.getBaseName(file.getName()) + ".mes");
-				System.out.println(measurementFile.getAbsolutePath());
-				measurementFile.createNewFile();
-				IOUtils.write(reportText, new FileWriter(measurementFile));
-			}
+			send(metaData, file, imageFile, report);
 
 			if (!report.getFieldErrorReports().isEmpty()) {
+                            boolean outgoing = false;
+                            for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext(); ) {
+                                if (it.next().getFieldError().getId() == DbUtils.ERROR_UNKOWN_OE_PATIENT) {
+                                    outgoing = true;
+                                }
+                            }
+                            if (outgoing) {
+				
+				File dest = new File(this.getOutgoingDir(), file.getName());
+				File imgDest = new File(this.getOutgoingDir(), report.getFileReference());
+                                file.renameTo(dest);
+                                imageFile.renameTo(imgDest);
+                                System.out.println("Failed to send; moving " + file.getName()
+						+ " to " + this.outgoingDir);
+				return;
+                            } else {
 				this.moveFile(metaData, report, file);
 				System.out.println("Error in record; moving " + file.getName()
 						+ " to " + this.errDir);
 				return;
+                            }
 			}
 			System.out.println("records match");
 			
@@ -245,6 +316,51 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 			fnfex.printStackTrace();
 		}
 	}
+        
+        /**
+         * 
+         * 
+         * @param metaData
+         * @param file
+         * @param imageFile
+         * @param report
+         * @throws IOException 
+         */
+        private void send(HumphreyFieldMetaData metaData, File file, File imageFile, FieldReport report) throws IOException {
+            String reportText = null;
+            try {
+                    // get the report's patient id and find out if they exist:
+                    Patient patient = new FhirUtils().readPatient(this.getHost(), 
+                                    this.getPort(), metaData, this.getAuthenticationUsername(),
+                                    this.getAuthenticationPassword());
+                    System.out.println("Expecting to import patient: ");
+                    System.out.println("Patient=" + patient);
+                    if (patient == null) { // not found
+                            this.setUnknownOEPatient(report);
+                    } else {
+                            reportText = this.generateMeasurementText(patient.getId(),
+                                            file, imageFile, report);
+                            this.transferHumphreyVisualField(reportText,report, file);
+                    }
+            } catch(     IllegalArgumentException | ConnectException iaex) {
+                // the illegal argument exception occurs when (for example) a patient hos num
+                // contains no leading zeros, but should - e.g. 0123456 vs. 123456
+                // in the report, pid is 123456 but /should/ be 0123456
+                // This results in an illegal argument exception and thinks the patient can't be found
+                    this.setUnknownOEPatient(report);
+                    if (reportText == null) {
+                            // mark the patient ID (or lack of) in the report text:
+                            reportText = this.generateMeasurementText("__OE_PATIENT_ID_"
+                                            + report.getPatientId() + "__",
+                                            file, imageFile, report);
+                    }
+                    // mark the message as not having been sent and re-try at a later date:
+                    File measurementFile = new File(this.getOutgoingDir(), 
+                                    FilenameUtils.getBaseName(file.getName()) + ".fmes");
+                    measurementFile.createNewFile();
+                    IOUtils.write(reportText, new FileWriter(measurementFile));
+            }
+        }
 	
 	/**
 	 * 
@@ -261,6 +377,7 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		session.save(errReport);
 
 		session.refresh(report);
+		session.update(report);
 		session.getTransaction().commit();
 	}
 	

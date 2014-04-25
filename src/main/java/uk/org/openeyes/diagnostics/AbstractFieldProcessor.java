@@ -9,6 +9,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
@@ -211,16 +213,38 @@ public abstract class AbstractFieldProcessor {
 		if (!report.getFieldErrorReports().isEmpty()) {
 			System.out.println("Errors detected in " + file.getName() + ":");
 		}
+                
+		session = HibernateUtil.getSessionFactory().getCurrentSession();
+		session.getTransaction().begin();
+                session.update(report);
+                for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext(); ) {
+                    session.update(it.next());
+                }
 		for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext();) {
 			FieldErrorReport fer = it.next();
 			System.out.println("\t" + fer.getFieldError().getId() + " " + fer.getFieldError().getDescription());
 		}
+                
+		session.getTransaction().commit();
+                
 		// in the case of an invalid file reference, we treat a non-existent image as existing:
 		if (!this.errorReportContains(report.getFieldErrorReports(), DbUtils.ERROR_INVALID_FILE_REFERENCE)) {
 			// then the image file exists - move this too:
 			File imageFile = new File(this.dir, metaData.getFileReference());
 			File fileToMove = new File(this.errDir, metaData.getFileReference());
-			imageFile.renameTo(fileToMove);
+                        
+                        Path source = imageFile.toPath();
+                        try {
+                             Files.move(source, source.resolveSibling(fileToMove.getAbsolutePath()));
+                        } catch (IOException e) {
+                             e.printStackTrace();
+                            throw new IOException("Unable to rename " + imageFile.getAbsolutePath()
+                                    + " to " + fileToMove.getAbsolutePath());
+                        }
+//			if (!imageFile.renameTo(fileToMove)) {
+//                            throw new IOException("Unable to rename " + imageFile.getAbsolutePath()
+//                                    + " to " + fileToMove.getAbsolutePath());
+//                        }
 			if (!fileToMove.exists()) {
 				throw new IOException("Unable to move " + imageFile.getAbsolutePath());
 			}

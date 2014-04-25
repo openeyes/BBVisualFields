@@ -5,20 +5,14 @@
 package uk.org.openeyes.diagnostics;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.xmlbeans.XmlException;
 import org.hl7.fhir.Attachment;
@@ -36,7 +30,6 @@ import org.hl7.fhir.ResourceReference;
 import org.w3.x2005.atom.ContentType;
 import org.w3.x2005.atom.EntryType;
 import org.w3.x2005.atom.FeedDocument;
-import uk.org.openeyes.diagnostics.db.FieldReport;
 
 /**
  * Class for marshaling and un-marshaling FHIR resources, as well as reading
@@ -163,22 +156,23 @@ public class FhirUtils {
 			throws ConnectException {
 		Patient p = null;
 		HttpTransfer sender = new HttpTransfer();
-		String requestParams = "identifier=" + metaData.getPatientId()
-				+ "&last_name=" + metaData.getFamilyName()
-				+ "&first_name=" + metaData.getGivenName();
+		String requestParams = "identifier=" + metaData.getPatientId();
+//				+ "&last_name=" + metaData.getFamilyName()
+//				+ "&first_name=" + metaData.getGivenName();
 		sender.setHost(host);
 		sender.setPort(port);
 		int result = -1;
 		try {
 			result = sender.read("Patient", "pat", requestParams, username, password);
-                        System.out.println("result:=" + result);
 			if (result == 200) {
 				FeedDocument doc = FeedDocument.Factory.parse(sender.getResponse());
-				EntryType entry = doc.getFeed().getEntryArray(0);
-				ContentType content = entry.getContentArray(0);
-				p = content.getPatient();
-				// reference to patient, last part is ID:
-				p.setId(FilenameUtils.getBaseName(entry.getIdArray(0).getStringValue()));
+                                if (doc.getFeed().getEntryArray().length > 0) {
+                                    EntryType entry = doc.getFeed().getEntryArray(0);
+                                    ContentType content = entry.getContentArray(0);
+                                    p = content.getPatient();
+                                    // reference to patient, last part is ID:
+                                    p.setId(FilenameUtils.getBaseName(entry.getIdArray(0).getStringValue()));
+                                }
 			}
 		} catch (ConnectException ex) {
 			throw ex;
