@@ -407,7 +407,7 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 		String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
 
 		String reportText = this.getHumphreyMeasurement(xmlFile,
-				patientRef, fieldReport,
+				String.format("%07d", new Integer(patientRef)), fieldReport,
 				encodedData, encodedDataThumb);
 		
 		imageConverted.delete();

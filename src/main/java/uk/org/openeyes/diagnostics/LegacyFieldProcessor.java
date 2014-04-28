@@ -139,7 +139,7 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
 				fis.available()));
 		
 		String reportText = this.getHumphreyMeasurement(xmlFile, 
-				"__OE_PATIENT_ID_" + fieldReport.getPatientId() + "__", 
+				"__OE_PATIENT_ID_" + String.format("%07d", new Integer(fieldReport.getPatientId())) + "__", 
 				fieldReport, encodedData, encodedDataThumb);
 
 		imageConverted.delete();
