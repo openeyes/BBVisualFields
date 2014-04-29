@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import uk.org.openeyes.diagnostics.db.DbUtils;
-import uk.org.openeyes.diagnostics.db.FieldError;
 
 /**
  *

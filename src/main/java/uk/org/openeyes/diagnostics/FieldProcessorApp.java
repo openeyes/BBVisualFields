@@ -4,6 +4,7 @@
  */
 package uk.org.openeyes.diagnostics;
 
+import java.io.Console;
 import java.io.File;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -68,8 +69,17 @@ public class FieldProcessorApp {
 					System.exit(1);
 				}
 				String[] credentials = cmd.getOptionValue("credentials").split(",");
-				watcher.setAuthenticationUsername(credentials[0]);
-				watcher.setAuthenticationPassword(credentials[1]);
+                                if (credentials.length == 1) {
+                                    Console cnsl = System.console();;
+                                    if (cnsl != null) {
+                                        watcher.setAuthenticationPassword(
+                                                new String(cnsl.readPassword("Enter authentication password: ")));
+                                    }  
+                                    watcher.setAuthenticationUsername(credentials[0]);
+                                } else {
+                                    watcher.setAuthenticationUsername(credentials[0]);
+                                    watcher.setAuthenticationPassword(credentials[1]);
+                                }
 			}
 			if (cmd.hasOption("p") || cmd.hasOption("port")) {
 				String port = cmd.getOptionValue("port");
