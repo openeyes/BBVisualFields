@@ -110,6 +110,7 @@ public abstract class AbstractFieldProcessor {
             op.addImage(original.getAbsolutePath());
             op.format("GIF").addImage(image1.getAbsolutePath());
             command.run(op);
+            op = new IMOperation();
             op.addImage(image1.getAbsolutePath());
             op.crop(this.getImageOptions()[2], this.getImageOptions()[3],
                     this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
