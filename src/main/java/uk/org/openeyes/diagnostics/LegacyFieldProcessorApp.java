@@ -63,21 +63,11 @@ public class LegacyFieldProcessorApp {
     options.addOption(optionRegex);
     CommandLineParser parser = new PosixParser();
     LegacyFieldProcessor watcher = new LegacyFieldProcessor();
+    CommonOptions.parseCommonOptions(watcher, options, args);
     try {
       CommandLine cmd = parser.parse(options, args);
       if (cmd.hasOption("help") || cmd.hasOption('h')) {
         FhirUtils.printHelp(options);
-      }
-      if (cmd.hasOption("d") || cmd.hasOption("dir")) {
-        watcher.setDir(new File(cmd.getOptionValue("dir")));
-        if (!watcher.getDir().exists()) {
-          System.err.println(watcher.getDir().getAbsolutePath()
-                  + " does not exist. Specify a valid watch directory.");
-          System.exit(1);
-        }
-      }
-      if (cmd.hasOption("r") || cmd.hasOption("regex")) {
-        watcher.setRegex(cmd.getOptionValue("regex"));
       }
       if (cmd.hasOption("g") || cmd.hasOption("global-search-path")) {
         watcher.setGlobalSearchPath(cmd.getOptionValue("global-search-path"));
@@ -93,7 +83,7 @@ public class LegacyFieldProcessorApp {
       if (cmd.hasOption("l") || cmd.hasOption("legacy")) {
         watcher.setLegacyDir(new File(cmd.getOptionValue("legacy-dir")));
         if (!watcher.getLegacyDir().exists()) {
-          System.err.println(watcher.getArchiveDir() + " does not exist. "
+          System.err.println(watcher.getLegacyDir() + " does not exist. "
                   + "Specify a valid directory.");
           System.exit(1);
         }

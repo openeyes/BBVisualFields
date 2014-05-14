@@ -33,6 +33,20 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
     public void setLegacyDir(File legacyDir) {
         this.legacyDir = legacyDir;
     }
+    
+    /**
+     *
+     */
+    public void run() {
+        while (true) {
+            try {
+                this.checkDir();
+                Thread.sleep(this.getInterval() * 1000);
+            } catch (InterruptedException iex) {
+                iex.printStackTrace();
+            }
+        }
+    }
 
     /**
      * 
@@ -144,12 +158,12 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
                 "__OE_PATIENT_ID_" + String.format("%07d", new Integer(fieldReport.getPatientId())) + "__",
                 fieldReport, encodedData, encodedDataThumb);
 
-        imageConverted.delete();
-        imageCropped.delete();
         File f2 = new File(this.getLegacyDir(),
                 FilenameUtils.getBaseName(file.getName()) + ".fmes");
         f2.createNewFile();
         FileUtils.write(f2, reportText);
+        System.out.println(imageConverted.delete());
+        System.out.println(imageCropped.delete());
 
     }
 }

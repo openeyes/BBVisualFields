@@ -25,12 +25,8 @@ public class FieldProcessorApp {
 			System.exit(1);
 		}
 		Options options = CommonOptions.getCommonOptions();
-		Option optionFile = new Option("f", "file", true,
-				"Specify XML file to send, then quit (mutually exclusive with -i)");
 		Option optionHost = new Option("s", "host", true,
 				"Specify server to send messages to.");
-		Option optionInterval = new Option("i", "interval", true,
-				"Time in seconds to sleep between checking. Must be > 0");
 		Option optionPort = new Option("p", "port", true,
 				"Port to connect to on server.");
 		Option optionCredentials = new Option("c", "credentials", true,
@@ -41,10 +37,8 @@ public class FieldProcessorApp {
 				"Duplicate files (successfully transferred) are moved to this directory.");
 		Option optionOutgoing = new Option("t", "outgoing", true,
 				"Directory to place measurement files that were not successfully sent.");
-		options.addOption(optionFile);
 		options.addOption(optionInDir);
 		options.addOption(optionHost);
-		options.addOption(optionInterval);
 		options.addOption(optionCredentials);
 		options.addOption(optionPort);
 		options.addOption(optionDupDir);
@@ -89,33 +83,6 @@ public class FieldProcessorApp {
 					System.err.println("Invalid value: " + port);
 					System.err.println("Specify port number as a positive integer.");
 					System.exit(1);
-				}
-			}
-
-			if ((cmd.hasOption("i") || cmd.hasOption("interval"))
-					&& (cmd.hasOption("f") || cmd.hasOption("file"))) {
-				System.err.println("Cannot specify interval AND file; specify one or the other.");
-				System.exit(1);
-			}
-			if (cmd.hasOption("i") || cmd.hasOption("interval")) {
-				String interval = cmd.getOptionValue("interval");
-				try {
-					watcher.setInterval(Integer.parseInt(interval));
-				} catch (NumberFormatException nfex) {
-					System.err.println("Invalid value: " + interval);
-					System.err.println("Specify interval in seconds as a positive integer.");
-					System.exit(1);
-				}
-			}
-			if (cmd.hasOption("f") || cmd.hasOption("file")) {
-				String file = cmd.getOptionValue("file");
-				watcher.processFile(new File(file));
-			} else {
-
-				// post checks
-				if (null != watcher) {
-					Thread t = new Thread(watcher);
-					t.start();
 				}
 			}
 		} catch (Exception ex) {

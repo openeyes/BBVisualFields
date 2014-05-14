@@ -26,7 +26,7 @@ import uk.org.openeyes.diagnostics.db.HibernateUtil;
 /**
  * Temporary class to watch for humphrey field images.
  */
-public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
+public class FieldProcessor extends AbstractFieldProcessor {
 
     private final static Logger log = Logger.getLogger(FieldProcessor.class.getName());
     /**
@@ -41,10 +41,6 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
      * Password for authentication.
      */
     private String authenticationPassword;
-    /**
-     * How long to wait (seconds) between checking for new reports.
-     */
-    private int interval = 1;
     /**
      * Port number to send reports on.
      */
@@ -67,7 +63,7 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
                 this.checkDir();
                 // check which files need to be sent (again):
                 this.checkOutgoing();
-                Thread.sleep(this.interval * 1000);
+                Thread.sleep(this.getInterval() * 1000);
             } catch (InterruptedException iex) {
                 iex.printStackTrace();
             }
@@ -145,22 +141,6 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
                 }
             }
 
-        }
-    }
-
-    /**
-     *
-     */
-    private void checkDir() {
-        // get file list -  all XML files
-        File[] files = this.dir.listFiles(new FileFilter() {
-
-            public boolean accept(File pathname) {
-                return pathname.getName().toLowerCase().endsWith(".xml");
-            }
-        });
-        for (File file : files) {
-            this.processFile(file);
         }
     }
 
@@ -459,14 +439,6 @@ public class FieldProcessor extends AbstractFieldProcessor implements Runnable {
 
     public void setOutgoingDir(String outgoingDir) {
         this.outgoingDir = new File(outgoingDir);
-    }
-
-    public int getInterval() {
-        return interval;
-    }
-
-    public void setInterval(int interval) {
-        this.interval = interval;
     }
 
     public int getPort() {

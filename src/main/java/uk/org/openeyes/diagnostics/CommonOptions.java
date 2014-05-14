@@ -103,6 +103,7 @@ public class CommonOptions {
             if (cmd.hasOption("r") || cmd.hasOption("regex")) {
                 watcher.setRegex(cmd.getOptionValue("regex"));
             }
+            
 //	  TODO - duplicates are an issue that needs to be dealt with
 //      if (cmd.hasOption("u") || cmd.hasOption("duplicates")) {
 //        watcher.setDuplicateDir(new File(cmd.getOptionValue("duplicates")));
@@ -125,6 +126,17 @@ public class CommonOptions {
             }
             if (cmd.hasOption("x") || cmd.hasOption("xml-source")) {
                 watcher.setIncludeSource(true);
+            }
+            if (cmd.hasOption("f") || cmd.hasOption("file")) {
+                    String file = cmd.getOptionValue("file");
+                    watcher.processFile(new File(file));
+            } else {
+
+                    // post checks
+                    if (null != watcher) {
+                            Thread t = new Thread(watcher);
+                            t.start();
+                    }
             }
         } catch (Exception ex) {
             System.err.println("Error: " + ex.getMessage());

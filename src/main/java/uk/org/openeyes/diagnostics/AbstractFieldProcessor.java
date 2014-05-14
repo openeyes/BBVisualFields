@@ -5,6 +5,7 @@
 package uk.org.openeyes.diagnostics;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -47,7 +48,7 @@ import uk.org.openeyes.diagnostics.db.HibernateUtil;
  *
  * @author rich
  */
-public abstract class AbstractFieldProcessor {
+public abstract class AbstractFieldProcessor implements Runnable {
 
     private final static Logger log = Logger.getLogger(AbstractFieldProcessor.class.getName());
     /** Default hos num regex. */
@@ -68,6 +69,8 @@ public abstract class AbstractFieldProcessor {
     protected int[] imageOptions;
     /** Include the XML source in the table data? Default to false. */
     protected boolean includeSource = false;
+    /** How long to wait (seconds) between checking for new reports. */
+    private int interval = 1;
     /**
      * Hibernate persistence session object.
      */
@@ -92,6 +95,22 @@ public abstract class AbstractFieldProcessor {
      * @return 
      */
     public abstract void processFile(File f);
+    
+    /**
+     * 
+     */
+    protected void checkDir() {
+        // get file list -  all XML files
+        File[] files = this.dir.listFiles(new FileFilter() {
+
+            public boolean accept(File pathname) {
+                return pathname.getName().toLowerCase().endsWith(".xml");
+            }
+        });
+        for (File file : files) {System.out.println("processing " + file.getName());
+            this.processFile(file);
+        }
+    }
 
     /**
      * 
@@ -116,22 +135,6 @@ public abstract class AbstractFieldProcessor {
                     this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
             op.format("GIF").addImage(image2.getAbsolutePath());
             command.run(op);
-            /* If the above does not run on Windows, this will: 
-            ProcessStarter.setGlobalSearchPath(this.globalSearchPath);
-            ConvertCmd command = new ConvertCmd();
-            IMOperation op = new IMOperation();
-            op.addImage(original.getAbsolutePath());
-            
-            op.format("GIF").addImage(image1.getAbsolutePath());
-            command.run(op);
-            
-            IMOperation op2 = new IMOperation();
-            op2.addImage(image1.getAbsolutePath());
-            op2.crop(this.getImageOptions()[2], this.getImageOptions()[3],
-            this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
-            op2.format("GIF").addImage(image2.getAbsolutePath());
-            command.run(op2);
-             */
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -328,6 +331,14 @@ public abstract class AbstractFieldProcessor {
 
     public void setGlobalSearchPath(String globalSearchPath) {
         this.globalSearchPath = globalSearchPath;
+    }
+
+    public int getInterval() {
+        return interval;
+    }
+
+    public void setInterval(int interval) {
+        this.interval = interval;
     }
 
     /**
