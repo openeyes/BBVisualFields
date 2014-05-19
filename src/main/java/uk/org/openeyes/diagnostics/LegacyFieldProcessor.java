@@ -162,8 +162,8 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
                 FilenameUtils.getBaseName(file.getName()) + ".fmes");
         f2.createNewFile();
         FileUtils.write(f2, reportText);
-        System.out.println(imageConverted.delete());
-        System.out.println(imageCropped.delete());
+        imageConverted.delete();
+        imageCropped.delete();
 
     }
 }
