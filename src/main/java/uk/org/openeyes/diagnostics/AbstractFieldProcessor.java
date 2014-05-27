@@ -519,6 +519,9 @@ public abstract class AbstractFieldProcessor implements Runnable {
         String val = null;
         int result = Integer.parseInt(strategy);
         switch (result) {
+            case 1:
+                val = "Full-Threshold";
+                break;
             case 4:
                 val = "SITA-Standard";
                 break;
