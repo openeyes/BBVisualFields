@@ -55,7 +55,7 @@ public class FieldProcessor extends AbstractFieldProcessor {
     private static final int[] BACKOFF_TIMES = {5, 10, 20, 60, 120, 240, 480, 960, 86400};
 
     /**
-     *
+     * Main thread for checking files.
      */
     public void run() {
         while (true) {
@@ -71,10 +71,8 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
-     * Check the outgoing directory and attempt to resend files that
-     * are of a certain file age.
-     * 
-     * 
+     * Checks the outgoing directory and see if there are any files that
+     * need re-sending.
      */
     private void checkOutgoing() {
         // get file list -  all XML files
@@ -90,8 +88,9 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
+     * Check specified file to see if it needs sending again.
      * 
-     * @param f 
+     * @param f the non-null file to send. 
      */
     private void checkFile(File f) {
 
@@ -118,7 +117,6 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 } else {
                     timeDiff = FieldProcessor.BACKOFF_TIMES[FieldProcessor.BACKOFF_TIMES.length - 1];
                 }
-//                    log.fine("time: " + time + ", timeDiff" +  timeDiff);
                 if (time > timeDiff) {
                     // move the file back to import directory for re-processing:
                     File imageFile = new File(this.outgoingDir, report.getFileReference());
@@ -130,8 +128,6 @@ public class FieldProcessor extends AbstractFieldProcessor {
                     metaData.setGivenName(report.getFirstName());
                     metaData.setFileReference(report.getFileReference());
                     metaData.setPatientId(report.getPatientId());
-//                        log.fine("Scheduling " + f.getName()
-//                                + " for resend...");
                     try {
                         this.send(metaData, xmlFile, imageFile, report);
                     } catch (IOException ioex) {
@@ -201,9 +197,9 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
-     *
-     * @param file
-     * @return
+     * Processes the file and attempts to move it to a correct location.
+     * 
+     * @param file a non-null already existing file.
      */
     @Override
     public void processFile(File file) {
@@ -250,10 +246,11 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 this.moveFile(metaData, report, file);
                 return;
             }
-            // measurement report text:
             this.send(metaData, file, imageFile, report);
 
             if (!report.getFieldErrorReports().isEmpty()) {
+                // if it is an unknown patient, try a resend in case the patient
+                // has been picked up by the PAS at this point:
                 boolean outgoing = false;
                 for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext();) {
                     if (it.next().getFieldError().getId() == DbUtils.ERROR_UNKOWN_OE_PATIENT) {
@@ -269,12 +266,14 @@ public class FieldProcessor extends AbstractFieldProcessor {
                     log.log(Level.WARNING, "Failed to send; moving {0} to {1}", new Object[]{file.getName(), this.outgoingDir});
                     return;
                 } else {
+                    // it's a general error, so just move it to the error dir:
                     this.moveFile(metaData, report, file);
                     log.log(Level.WARNING, "Error in record; moving {0} to {1}", new Object[]{file.getName(), this.errDir});
                     return;
                 }
             }
 
+            // move the image file to the archive directory:
             File moveToFile = new File(this.archiveDir, imageFile.getName());
             imageFile.renameTo(moveToFile);
             // don't use boolean result, not always consistent, just check if new file exists:
@@ -282,6 +281,7 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 log.log(Level.WARNING, "Unable to move {0}", imageFile.getAbsolutePath());
                 // TODO clean up - mark file as ignored?
             }
+            // now move the XML:
             moveToFile = new File(this.archiveDir, file.getName());
             if (file.renameTo(moveToFile)) {
                 log.info("Moved " + file.getName() + " to " + moveToFile.getParentFile().getAbsolutePath());
@@ -300,12 +300,14 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
+     * Attempts to send the details of the scan to the OE server. This involves
+     * contacting the server to see if the patient exists, and if they do,
+     * sending it on.
      * 
-     * 
-     * @param metaData
-     * @param file
-     * @param imageFile
-     * @param report
+     * @param metaData meta data containing patient information.
+     * @param file the XML file being processed.
+     * @param imageFile the non-null image file.
+     * @param report non-null field report.
      * @throws IOException 
      */
     private void send(HumphreyFieldMetaData metaData, File file, File imageFile, FieldReport report) throws IOException {
@@ -315,8 +317,6 @@ public class FieldProcessor extends AbstractFieldProcessor {
             Patient patient = new FhirUtils().readPatient(this.getHost(),
                     this.getPort(), metaData, this.getAuthenticationUsername(),
                     this.getAuthenticationPassword());
-            log.fine("Expecting to import patient: ");
-            log.log(Level.FINE, "Patient={0}", patient);
             if (patient == null) { // not found
                 this.setUnknownOEPatient(report);
             } else {
@@ -345,8 +345,11 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
+     * Mark a patient as unknown. This happens when a lookup is performed
+     * for a patient, but they are not yet present in the PAS.
      * 
-     * @param report 
+     * @param report the non-null report to check to see if the patient
+     * exists.
      */
     private void setUnknownOEPatient(FieldReport report) {
         session = HibernateUtil.getSessionFactory().getCurrentSession();
@@ -364,13 +367,16 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
+     * Create the main measurement text that will be understood by the server.
      * 
-     * @param patientRef
-     * @param xmlFile
-     * @param file
-     * @param fieldReport
-     * @return
-     * @throws IOException 
+     * @param patientRef the patient's reference/hos num.
+     * @param xmlFile non-null existent file containing humphrey XML.
+     * @param file the non-null image file.
+     * @param fieldReport field report containing 
+     * 
+     * @return String measurement text.
+     * 
+     * @throws IOException if the 
      */
     private String generateMeasurementText(String patientRef, File xmlFile,
             File file, FieldReport fieldReport)
@@ -388,7 +394,9 @@ public class FieldProcessor extends AbstractFieldProcessor {
         fis = new FileInputStream(imageCropped);
         String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis, fis.available()));
 
-        String reportText = this.getHumphreyMeasurement(xmlFile,
+        String reportText = null;
+
+        reportText = this.getHumphreyMeasurement(xmlFile,
                 String.format("%07d", new Integer(patientRef)), fieldReport,
                 encodedData, encodedDataThumb);
 
@@ -398,12 +406,11 @@ public class FieldProcessor extends AbstractFieldProcessor {
     }
 
     /**
-     * Transfer the specified report.
+     * Transfer the specified report to the server.
      *
-     * @param patientRef
-     * @param file
-     * @param xmlFile
-     * @param fieldReport
+     * @param reportText actual report text to send to the server.
+     * @param fieldReport non-null report containing field exam information.
+     * @param file non-null existent file containing CZM XML.
      */
     private void transferHumphreyVisualField(String reportText, FieldReport fieldReport, File file) throws IOException {
         HttpTransfer sender = new HttpTransfer();
