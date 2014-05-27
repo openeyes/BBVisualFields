@@ -503,16 +503,29 @@ public abstract class AbstractFieldProcessor implements Runnable {
             case 2:
                 val = "30-2 Thu";
                 break;
+            case 8:
+                val = "Macula Threshold";
+                break;
             case 10:
                 val = "10-2";
+                break;
+            case 23:
+                val = "Central 76 Point Screening Test";
                 break;
             case 25:
                 val = "S S-24-2 Thr";
                 break;
+            case 29:
+                val = "Esterman Binocular";
+                break;
             case 30:
                 val = "60-4";
                 break;
+            case 32:
+                val = "ANAT-L Threshold";
+                break;
         }
+        if (val == null) System.out.println("Pattern value unknown: " + pattern);
         return val;
     }
 
@@ -535,6 +548,9 @@ public abstract class AbstractFieldProcessor implements Runnable {
             case 1:
                 val = "Full-Threshold";
                 break;
+            case 2:
+                val = "FASTPAC";
+                break;
             case 4:
                 val = "SITA-Standard";
                 break;
@@ -545,6 +561,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
                 val = "SITA-Standard";
                 break;
         }
+        if (val == null) System.out.println("Strategy value unknown: " + strategy);
         return val;
     }
 
