@@ -453,7 +453,9 @@ public abstract class AbstractFieldProcessor implements Runnable {
                 // OS/OD == oculus sinister/dexter = left/right
                 if (file.getName().contains("_OD_")) {
                     eye = "R";
-                } 
+                } else if (file.getName().contains("_OU_")) {
+                    eye = "B";
+                }
                 String fileReference = fieldExam + "/SINGLE_EXAM_IMAGE/IMAGE_FILE_NAME";
 
                 metaData.setPatientId(this.evaluate(document, xPath, patientRoot + "PATIENT_ID"));
