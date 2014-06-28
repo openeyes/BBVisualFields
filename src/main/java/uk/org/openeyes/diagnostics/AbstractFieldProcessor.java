@@ -453,7 +453,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
                 // OS/OD == oculus sinister/dexter = left/right
                 if (file.getName().contains("_OD_")) {
                     eye = "R";
-                }
+                } 
                 String fileReference = fieldExam + "/SINGLE_EXAM_IMAGE/IMAGE_FILE_NAME";
 
                 metaData.setPatientId(this.evaluate(document, xPath, patientRoot + "PATIENT_ID"));
@@ -461,8 +461,8 @@ public abstract class AbstractFieldProcessor implements Runnable {
                 metaData.setGivenName(this.evaluate(document, xPath, patientRoot + "GIVEN_NAME"));
                 metaData.setFamilyName(this.evaluate(document, xPath, patientRoot + "LAST_NAME"));
                 metaData.setEye(eye);
-                metaData.setTestPattern(this.getPattern(this.evaluate(document, xPath, staticTest + "TEST_PATTERN")));
                 metaData.setTestStrategy(this.getStrategy(this.evaluate(document, xPath, staticTest + "TEST_STRATEGY")));
+                metaData.setTestPattern(this.getPattern(this.evaluate(document, xPath, staticTest + "TEST_PATTERN")));
                 metaData.setTestDate(visitDate);
                 metaData.setTestTime(examTime);
                 metaData.setFileReference(this.evaluate(document, xPath, fileReference));
@@ -500,20 +500,44 @@ public abstract class AbstractFieldProcessor implements Runnable {
         String val = null;
         int result = Integer.parseInt(pattern);
         switch (result) {
+            // case: Nasal Step? (in DB - equiv. from file?)
+            // case: 30-2 Thu? (in DB - equiv. from file?)
+            // case: Macula (see DB) == "Macula Threshold"?
             case 2:
-                val = "30-2 Thu";
+                val = "30-2 Thu"; // same as central 30-2 threshold test
+                break;
+            case 4:
+                val = "Peripheral 60-4 Threshold Test";
                 break;
             case 8:
-                val = "Macula Threshold";
+                val = "Macula";
                 break;
             case 10:
                 val = "10-2";
                 break;
+            case 13:
+                val = "Central 40 Point Screening Test";
+                break;
+            case 14:
+                val = "Peripheral 60 Point Screening Test";
+                break;
+            case 18:
+                val = "Full Field 120 Point Screening Test";
+                break;
+            case 17:
+                val = "Full Field 81 Point Screening Test";
+                break;
+            case 20:
+                val = "S S-24-2 Thr";
+                break;
             case 23:
                 val = "Central 76 Point Screening Test";
                 break;
-            case 25:
-                val = "S S-24-2 Thr";
+            case 25: // same as 24-2 SITA-Standard?
+                val = "Central 24-2 Threshold Test";
+                break;
+            case 28:
+                val = "Esterman Monocular";
                 break;
             case 29:
                 val = "Esterman Binocular";
@@ -522,10 +546,12 @@ public abstract class AbstractFieldProcessor implements Runnable {
                 val = "60-4";
                 break;
             case 32:
-                val = "ANAT-L Threshold";
+                val = "ANAT Threshold";
+                break;
+            case 84:
+                val = "Custom Threshold Test";
                 break;
         }
-        if (val == null) System.out.println("Pattern value unknown: " + pattern);
         return val;
     }
 
@@ -545,6 +571,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
         String val = null;
         int result = Integer.parseInt(strategy);
         switch (result) {
+            // case: Two Zone? (in DB - equiv. from file?)
             case 1:
                 val = "Full-Threshold";
                 break;
@@ -554,14 +581,19 @@ public abstract class AbstractFieldProcessor implements Runnable {
             case 4:
                 val = "SITA-Standard";
                 break;
+            case 5:
+                val = "Full From Prior";
+                break;
             case 6:
                 val = "SITA-Fast";
                 break;
-            case 11:
-                val = "SITA-Standard";
+            case 7:
+                val = "Three Zone";
+                break;
+            case 8:
+                val = "Quantify Defects";
                 break;
         }
-        if (val == null) System.out.println("Strategy value unknown: " + strategy);
         return val;
     }
 
