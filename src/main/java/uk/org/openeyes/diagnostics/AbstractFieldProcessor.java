@@ -77,7 +77,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
     /** Some OSs require the path setting for ImageMagick. */
     protected String globalSearchPath = null;
     /** Defaults when no CLI options given for image crop & scale. */
-    public static final int[] DEFAULT_IMAGE_OPTIONS = {1368, 666, 662, 658, 300, 306};
+    public static final int[] DEFAULT_IMAGE_OPTIONS = {1328, 560, 776, 864};
     /** Specify parameters to crop and scale the image. */
     protected int[] imageOptions;
     /** Include the XML source in the table data? Default to false. */
@@ -145,7 +145,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
             op = new IMOperation();
             op.addImage(image1.getAbsolutePath());
             op.crop(this.getImageOptions()[2], this.getImageOptions()[3],
-                    this.getImageOptions()[0], this.getImageOptions()[1]).thumbnail(this.getImageOptions()[4], this.getImageOptions()[5]);
+                    this.getImageOptions()[0], this.getImageOptions()[1]);
             op.format("GIF").addImage(image2.getAbsolutePath());
             command.run(op);
         } catch (Exception ex) {
