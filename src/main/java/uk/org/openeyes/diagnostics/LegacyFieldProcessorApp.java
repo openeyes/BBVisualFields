@@ -33,7 +33,7 @@ public class LegacyFieldProcessorApp {
       System.out.println("Error: no options specified. Try -h");
       System.exit(1);
     }
-    Options options = new Options();
+    Options options = CommonOptions.getCommonOptions();
     Option optionFile = new Option("f", "file", true,
             "Specify XML file to send, then quit (mutually exclusive with -i)");
     Option optionInDir = new Option("d", "dir", true,
