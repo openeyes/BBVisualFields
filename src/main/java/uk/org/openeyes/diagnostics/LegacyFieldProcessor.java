@@ -161,14 +161,17 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
                 FilenameUtils.getBaseName(file.getName()) + "-cropped.gif");
         transformImages(file, imageConverted, imageCropped);
         BASE64Encoder encoder = new BASE64Encoder();
+	
         FileInputStream fis = new FileInputStream(imageConverted);
         String encodedData = encoder.encode(IOUtils.toByteArray(fis,
                 fis.available()));
-
-        fis = new FileInputStream(imageCropped);
-        String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fis,
-                fis.available()));
-
+	fis.close();
+	
+        FileInputStream fisCropped = new FileInputStream(imageCropped);
+        String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fisCropped,
+                fisCropped.available()));
+	fisCropped.close();
+	
         String reportText = this.getHumphreyMeasurement(xmlFile,
                 "__OE_PATIENT_ID_" + String.format("%07d", new Integer(fieldReport.getPatientId())) + "__",
                 fieldReport, encodedData, encodedDataThumb);
