@@ -121,14 +121,16 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
             log.fine("records match");
             this.transferLegacyHumphreyVisualField(file, imageFile, report);
             File moveToFile = new File(this.archiveDir, imageFile.getName());
-            imageFile.renameTo(moveToFile);
+//            imageFile.renameTo(new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
+	    moveFile(imageFile, new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
             // don't use boolean result, not always consistent, just check if new file exists:
             if (!moveToFile.exists()) {
                 log.warning("Unable to move " + imageFile.getAbsolutePath());
                 // TODO clean up - mark file as ignored?
             }
             moveToFile = new File(this.archiveDir, file.getName());
-            file.renameTo(moveToFile);
+//            file.renameTo(new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
+	    moveFile(file, new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
             // don't use boolean result, not always consistent, just check if new file exists:
             if (!moveToFile.exists()) {
                 log.warning("Unable to move " + file.getAbsolutePath());

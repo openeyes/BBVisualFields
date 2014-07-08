@@ -37,6 +37,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.hibernate.Query;
@@ -120,9 +121,11 @@ public abstract class AbstractFieldProcessor implements Runnable {
                 return pathname.getName().toLowerCase().endsWith(".xml");
             }
         });
-        for (File file : files) {System.out.println("processing " + file.getName());
-            this.processFile(file);
-        }
+	if (files != null) {
+	    for (File file : files) {
+		this.processFile(file);
+	    }
+	}
     }
 
     /**
@@ -247,16 +250,16 @@ public abstract class AbstractFieldProcessor implements Runnable {
         if (!this.errorReportContains(report.getFieldErrorReports(), DbUtils.ERROR_INVALID_FILE_REFERENCE)) {
             // then the image file exists - move this too:
             File imageFile = new File(this.dir, metaData.getFileReference());
-            File fileToMove = new File(this.errDir, metaData.getFileReference());
-
-            Path source = imageFile.toPath();
-            try {
-                Files.move(source, source.resolveSibling(fileToMove.getAbsolutePath()));
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new IOException("Unable to rename " + imageFile.getAbsolutePath()
-                        + " to " + fileToMove.getAbsolutePath());
-            }
+            File fileToMove = new File(this.hashDir(this.errDir, metaData), metaData.getFileReference());
+	    moveFile(imageFile, fileToMove);
+//            Path source = imageFile.toPath();
+//            try {
+//                Files.move(source, source.resolveSibling(fileToMove.getAbsolutePath()));
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                throw new IOException("Unable to rename " + imageFile.getAbsolutePath()
+//                        + " to " + fileToMove.getAbsolutePath());
+//            }
 //			if (!imageFile.renameTo(fileToMove)) {
 //                            throw new IOException("Unable to rename " + imageFile.getAbsolutePath()
 //                                    + " to " + fileToMove.getAbsolutePath());
@@ -269,14 +272,52 @@ public abstract class AbstractFieldProcessor implements Runnable {
             String basename = FilenameUtils.getBaseName(file.getName());
             File imageFile = new File(file.getParentFile(), basename + ".tif");
             if (imageFile.exists()) {
-                imageFile.renameTo(new File(this.errDir, imageFile.getName()));
+//                imageFile.renameTo(new File(this.hashDir(this.errDir, metaData), imageFile.getName()));
+                moveFile(imageFile, new File(this.hashDir(this.errDir, metaData), imageFile.getName()));
             }
         }
         File fileToMoveTo = new File(this.errDir, file.getName());
-        file.renameTo(fileToMoveTo);
-        if (!fileToMoveTo.exists()) {
+//        file.renameTo(new File(this.hashDir(fileToMoveTo.getParentFile(), metaData), fileToMoveTo.getName()));
+        moveFile(file, new File(this.hashDir(fileToMoveTo.getParentFile(), metaData), fileToMoveTo.getName()));
+        if (!new File(this.hashDir(fileToMoveTo.getParentFile(), metaData), fileToMoveTo.getName()).exists()) {
             throw new IOException("Unable to move " + file.getAbsolutePath());
         }
+	
+    }
+    
+    /**
+     * 
+     * @param source
+     * @param dest 
+     */
+    protected void moveFile(File source, File dest) throws IOException {
+	FileUtils.copyFile(source, dest);
+	source.delete();
+    }
+    
+    /**
+     * Encode the given directory and create it with the date (year + month) suffxed;
+     * so (for example), hashing a date of 1999 and 06 to the directory
+     * err/ would result in err/199906.
+     * 
+     * In the case that the meta data is not set, <i>dir</i> is passed back.
+     * 
+     * @param dir non-null directory
+     * @param metaData non-null meta data.
+     * 
+     * @return a new file with the appropriate directory structure.
+     */
+    protected File hashDir(File dir, HumphreyFieldMetaData metaData) {
+	File file = dir;
+	String date = null;
+	if (metaData.getTestDate() != null && !"".equals(metaData.getTestDate())) {
+	    date = metaData.getTestDate().substring(0, 7).replace("-", "");   
+	    file = new File(dir, date);
+	}
+	if (!file.exists()) {
+	    file.mkdirs();
+	}
+	return file;
     }
 
     /**
@@ -636,7 +677,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
         try {
             DocumentBuilderFactory dBF = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = dBF.newDocumentBuilder();
-            istream = new FileInputStream(file);
+            istream = new FileInputStream(file.getAbsolutePath());
             Document doc = builder.parse(istream);
             valid = true;
         } catch (NullPointerException e) {
