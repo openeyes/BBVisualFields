@@ -291,8 +291,9 @@ public abstract class AbstractFieldProcessor implements Runnable {
      * @param dest 
      */
     protected void moveFile(File source, File dest) throws IOException {
-	FileUtils.copyFile(source, dest);
-	source.delete();
+	source.renameTo(dest);
+//	FileUtils.copyFile(source, dest);
+//	source.delete();
     }
     
     /**
