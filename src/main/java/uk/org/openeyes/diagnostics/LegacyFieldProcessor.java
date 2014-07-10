@@ -75,13 +75,13 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
         try {
             // parse XML file:
             if (!this.validate(file)) {
-                file.renameTo(new File(this.errDir, file.getName()));
+                moveFile(file, new File(this.errDir, file.getName()));
                 // if the file is invalid, that means we can't get the file name -
                 // though it might still exist. Check anyway:
                 String basename = FilenameUtils.getBaseName(file.getName());
                 File imageFile = new File(file.getParentFile(), basename + ".tif");
                 if (imageFile.exists()) {
-                    imageFile.renameTo(new File(this.errDir, imageFile.getName()));
+                    moveFile(imageFile, new File(this.errDir, imageFile.getName()));
                 }
                 return;
             }
@@ -121,25 +121,27 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
             log.fine("records match");
             this.transferLegacyHumphreyVisualField(file, imageFile, report);
             File moveToFile = new File(this.archiveDir, imageFile.getName());
-//            imageFile.renameTo(new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
 	    moveFile(imageFile, new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
-            // don't use boolean result, not always consistent, just check if new file exists:
-            if (!moveToFile.exists()) {
-                log.warning("Unable to move " + imageFile.getAbsolutePath());
-                // TODO clean up - mark file as ignored?
-            }
             moveToFile = new File(this.archiveDir, file.getName());
-//            file.renameTo(new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
 	    moveFile(file, new File(this.hashDir(moveToFile.getParentFile(), metaData), moveToFile.getName()));
-            // don't use boolean result, not always consistent, just check if new file exists:
-            if (!moveToFile.exists()) {
-                log.warning("Unable to move " + file.getAbsolutePath());
-                // TODO clean up - mark file as ignored?
-            }
+
         } catch (FileNotFoundException fnfex) {
             fnfex.printStackTrace();
         } catch (IOException fnfex) {
             fnfex.printStackTrace();
+        }
+    }
+
+    /**
+     * Converts the (temporary!) file to Base64 then deletes it.  This
+     * is purely a helper for transferLegacyHumphreyVisualField.
+     */
+    private static String encodeThenDelete(File file) throws IOException {
+        BASE64Encoder base64 = new BASE64Encoder();
+        try(FileInputStream fis = new FileInputStream(file)) {
+            return base64.encode(IOUtils.toByteArray(fis, fis.available()));
+        } finally {
+            deleteFile(file);
         }
     }
 
@@ -160,28 +162,15 @@ public class LegacyFieldProcessor extends AbstractFieldProcessor {
         File imageCropped = new File(file.getParentFile(),
                 FilenameUtils.getBaseName(file.getName()) + "-cropped.gif");
         transformImages(file, imageConverted, imageCropped);
-        BASE64Encoder encoder = new BASE64Encoder();
-	
-        FileInputStream fis = new FileInputStream(imageConverted);
-        String encodedData = encoder.encode(IOUtils.toByteArray(fis,
-                fis.available()));
-	fis.close();
-	
-        FileInputStream fisCropped = new FileInputStream(imageCropped);
-        String encodedDataThumb = encoder.encode(IOUtils.toByteArray(fisCropped,
-                fisCropped.available()));
-	fisCropped.close();
 	
         String reportText = this.getHumphreyMeasurement(xmlFile,
                 "__OE_PATIENT_ID_" + String.format("%07d", new Integer(fieldReport.getPatientId())) + "__",
-                fieldReport, encodedData, encodedDataThumb);
+                fieldReport, encodeThenDelete(imageConverted), encodeThenDelete(imageCropped));
 
         File f2 = new File(this.getLegacyDir(),
                 FilenameUtils.getBaseName(file.getName()) + ".fmes");
         f2.createNewFile();
         FileUtils.write(f2, reportText);
-        imageConverted.delete();
-        imageCropped.delete();
 
     }
 }

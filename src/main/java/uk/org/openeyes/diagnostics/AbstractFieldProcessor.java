@@ -285,17 +285,36 @@ public abstract class AbstractFieldProcessor implements Runnable {
 	
     }
     
-    /**
+    /** Moves a file with logging.
      * 
-     * @param source
-     * @param dest 
+     * @param source the name of the file to move
+     * @param dest the desired new name
+     * @throws IOException if the move failed (e.g. dest already exists)
      */
-    protected void moveFile(File source, File dest) throws IOException {
-	source.renameTo(dest);
-//	FileUtils.copyFile(source, dest);
-//	source.delete();
+    protected final static void moveFile(File source, File dest) throws IOException {
+	log.fine("move " + source + " to " + dest);
+	try {
+	    Files.move(source.toPath(), dest.toPath());
+	} catch(IOException e) {
+	    log.info("Could not rename " + source + " to " + dest + ": " + e.toString());
+	    throw e;
+	}
     }
     
+    /** Deletes a file with logging.
+     * 
+     * @param file the name of the file to delete
+     * @throws IOException if the delete failed
+     */
+    protected final static void deleteFile(File file) throws IOException {
+	log.fine("delete " + file);
+	try {
+	    Files.delete(file.toPath());
+	} catch(IOException e) {
+	    log.info("Could not delete " + file + ": " + e.toString());
+	    throw e;
+	}
+    }
     /**
      * Encode the given directory and create it with the date (year + month) suffxed;
      * so (for example), hashing a date of 1999 and 06 to the directory
