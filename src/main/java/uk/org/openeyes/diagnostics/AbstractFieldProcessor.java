@@ -144,12 +144,14 @@ public abstract class AbstractFieldProcessor implements Runnable {
             IMOperation op = new IMOperation();
             op.addImage(original.getAbsolutePath());
             op.format("GIF").addImage(image1.getAbsolutePath());
+            log.log(Level.FINE, "Running ImageMagick operation: {0}", op);
             command.run(op);
             op = new IMOperation();
             op.addImage(image1.getAbsolutePath());
             op.crop(this.getImageOptions()[2], this.getImageOptions()[3],
-                    this.getImageOptions()[0], this.getImageOptions()[1]);
+                    this.getImageOptions()[0], this.getImageOptions()[1], '!');
             op.format("GIF").addImage(image2.getAbsolutePath());
+            log.log(Level.FINE, "Running ImageMagick operation: {0}", op);
             command.run(op);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -292,11 +294,11 @@ public abstract class AbstractFieldProcessor implements Runnable {
      * @throws IOException if the move failed (e.g. dest already exists)
      */
     protected final static void moveFile(File source, File dest) throws IOException {
-	log.fine("move " + source + " to " + dest);
+	log.log(Level.FINE, "move {0} to {1}", new Object[]{source, dest});
 	try {
 	    Files.move(source.toPath(), dest.toPath());
 	} catch(IOException e) {
-	    log.info("Could not rename " + source + " to " + dest + ": " + e.toString());
+	    log.log(Level.WARNING, "Could not rename {0} to {1}: {2}", new Object[]{source, dest, e});
 	    throw e;
 	}
     }
@@ -307,11 +309,11 @@ public abstract class AbstractFieldProcessor implements Runnable {
      * @throws IOException if the delete failed
      */
     protected final static void deleteFile(File file) throws IOException {
-	log.fine("delete " + file);
+	log.log(Level.FINE, "delete {0}", file);
 	try {
 	    Files.delete(file.toPath());
 	} catch(IOException e) {
-	    log.info("Could not delete " + file + ": " + e.toString());
+	    log.log(Level.WARNING, "Could not delete {0}: {1}", new Object[]{file, e});
 	    throw e;
 	}
     }
