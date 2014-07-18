@@ -153,6 +153,7 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 }
                 if (time > timeDiff) {
                     // move the file back to import directory for re-processing:
+                    try {
                     File imageFile = new File(this.outgoingDir, report.getFileReference());
                     File xmlFile = new File(this.outgoingDir, report.getFileName());
                     HumphreyFieldMetaData metaData = new HumphreyFieldMetaData(this.regex);
@@ -162,8 +163,10 @@ public class FieldProcessor extends AbstractFieldProcessor {
                     metaData.setGivenName(report.getFirstName());
                     metaData.setFileReference(report.getFileReference());
                     metaData.setPatientId(report.getPatientId());
-                    try {
                         this.send(metaData, xmlFile, imageFile, report);
+		    } catch (NullPointerException e) {
+                        log.warning("NPE when processing "
+                                + f.getName() + ": " + e.getMessage());
                     } catch (IOException ioex) {
                         log.warning("IO Error processing "
                                 + f.getName() + ": " + ioex.getMessage());
