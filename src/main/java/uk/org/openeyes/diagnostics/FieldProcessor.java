@@ -80,10 +80,6 @@ public class FieldProcessor extends AbstractFieldProcessor {
      */
     private int port = 80;
     /**
-     * Which directory to place files that failed to send.
-     */
-    private File outgoingDir;
-    /**
      * Time, in minutes for when to send old unsent files.
      */
     private static final int[] BACKOFF_TIMES = {5, 10, 20, 60, 120, 240, 480, 960, 86400};
@@ -95,85 +91,10 @@ public class FieldProcessor extends AbstractFieldProcessor {
         while (true) {
             try {
                 this.checkDir();
-                // check which files need to be sent (again):
-                this.checkOutgoing();
                 Thread.sleep(this.getInterval() * 1000);
             } catch (InterruptedException iex) {
                 iex.printStackTrace();
             }
-        }
-    }
-
-    /**
-     * Checks the outgoing directory and see if there are any files that
-     * need re-sending.
-     */
-    private void checkOutgoing() {
-        // get file list -  all XML files
-        File[] files = this.outgoingDir.listFiles(new FileFilter() {
-
-            public boolean accept(File pathname) {
-                return pathname.getName().toLowerCase().endsWith(".xml");
-            }
-        });
-        for (File file : files) {
-            this.checkFile(file);
-        }
-    }
-
-    /**
-     * Check specified file to see if it needs sending again.
-     * 
-     * @param f the non-null file to send. 
-     */
-    private void checkFile(File f) {
-
-        session = HibernateUtil.getSessionFactory().getCurrentSession();
-
-        session.getTransaction().begin();
-        Query query = session.createQuery("from FieldReport where file_name=:file_name");
-        query.setParameter("file_name", f.getName());
-        List list = query.list();
-        FieldReport report = null;
-        if (!list.isEmpty()) {
-            report = (FieldReport) list.get(0);
-        }
-        if (report != null) {
-            long time = ((long) ((Calendar.getInstance().getTimeInMillis() - f.lastModified()) / 1000));
-            query = session.createQuery(
-                    "from FieldErrorReport err where field_report_id= :report_id");
-            query.setParameter("report_id", report.getId());
-            int results = query.list().size();
-            if (results > 0) {
-                int timeDiff = 0;
-                if (results < FieldProcessor.BACKOFF_TIMES.length) {
-                    timeDiff = FieldProcessor.BACKOFF_TIMES[results - 1];
-                } else {
-                    timeDiff = FieldProcessor.BACKOFF_TIMES[FieldProcessor.BACKOFF_TIMES.length - 1];
-                }
-                if (time > timeDiff) {
-                    // move the file back to import directory for re-processing:
-                    try {
-                    File imageFile = new File(this.outgoingDir, report.getFileReference());
-                    File xmlFile = new File(this.outgoingDir, report.getFileName());
-                    HumphreyFieldMetaData metaData = new HumphreyFieldMetaData(this.regex);
-                    // only need certain patient-identifiable fields:
-                    metaData.setDob(report.getDob());
-                    metaData.setFamilyName(report.getLastName());
-                    metaData.setGivenName(report.getFirstName());
-                    metaData.setFileReference(report.getFileReference());
-                    metaData.setPatientId(report.getPatientId());
-                        this.send(metaData, xmlFile, imageFile, report);
-		    } catch (NullPointerException e) {
-                        log.warning("NPE when processing "
-                                + f.getName() + ": " + e.getMessage());
-                    } catch (IOException ioex) {
-                        log.warning("IO Error processing "
-                                + f.getName() + ": " + ioex.getMessage());
-                    }
-                }
-            }
-
         }
     }
 
@@ -286,28 +207,9 @@ public class FieldProcessor extends AbstractFieldProcessor {
             this.send(metaData, file, imageFile, report);
 
             if (!report.getFieldErrorReports().isEmpty()) {
-                // if it is an unknown patient, try a resend in case the patient
-                // has been picked up by the PAS at this point:
-                boolean outgoing = false;
-                for (Iterator<FieldErrorReport> it = report.getFieldErrorReports().iterator(); it.hasNext();) {
-                    if (it.next().getFieldError().getId() == DbUtils.ERROR_UNKOWN_OE_PATIENT) {
-                        outgoing = true;
-                    }
-                }
-                if (outgoing) {
-
-                    File dest = new File(this.getOutgoingDir(), file.getName());
-                    File imgDest = new File(this.getOutgoingDir(), report.getFileReference());
-                    file.renameTo(dest);
-                    imageFile.renameTo(imgDest);
-                    log.log(Level.WARNING, "Failed to send; moving {0} to {1}", new Object[]{file.getName(), this.outgoingDir});
-                    return;
-                } else {
-                    // it's a general error, so just move it to the error dir:
-                    this.moveFile(metaData, report, file);
-                    log.log(Level.WARNING, "Error in record; moving {0} to {1}", new Object[]{file.getName(), this.errDir});
-                    return;
-                }
+		this.moveFile(metaData, report, file);
+		log.log(Level.WARNING, "Error in record; moving {0} to {1}", new Object[]{file.getName(), this.errDir});
+		return;
             }
 
             // move the image file to the archive directory:
@@ -367,17 +269,6 @@ public class FieldProcessor extends AbstractFieldProcessor {
             // in the report, pid is 123456 but /should/ be 0123456
             // This results in an illegal argument exception and thinks the patient can't be found
             this.setUnknownOEPatient(report);
-            if (reportText == null) {
-                // mark the patient ID (or lack of) in the report text:
-                reportText = this.generateMeasurementText("__OE_PATIENT_ID_"
-                        + report.getPatientId() + "__",
-                        file, imageFile, report);
-            }
-            // mark the message as not having been sent and re-try at a later date:
-            File measurementFile = new File(this.getOutgoingDir(),
-                    FilenameUtils.getBaseName(file.getName()) + ".fmes");
-            measurementFile.createNewFile();
-            IOUtils.write(reportText, new FileWriter(measurementFile));
         }
     }
 
@@ -475,14 +366,6 @@ public class FieldProcessor extends AbstractFieldProcessor {
 
     public void setHost(String host) {
         this.host = host;
-    }
-
-    public File getOutgoingDir() {
-        return outgoingDir;
-    }
-
-    public void setOutgoingDir(String outgoingDir) {
-        this.outgoingDir = new File(outgoingDir);
     }
 
     public int getPort() {
