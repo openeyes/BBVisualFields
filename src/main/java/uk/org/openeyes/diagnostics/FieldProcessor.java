@@ -204,7 +204,14 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 this.moveFile(metaData, report, file);
                 return;
             }
-            this.send(metaData, file, imageFile, report);
+
+            try {
+                this.send(metaData, file, imageFile, report);
+            } catch (Exception e) {
+                e.printStackTrace();
+                this.moveFile(metaData, report, file);
+                return;
+            }
 
             if (!report.getFieldErrorReports().isEmpty()) {
 		this.moveFile(metaData, report, file);
