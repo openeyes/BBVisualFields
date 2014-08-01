@@ -40,7 +40,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.ConnectException;
+import java.net.SocketException;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
@@ -207,6 +207,15 @@ public class FieldProcessor extends AbstractFieldProcessor {
 
             try {
                 this.send(metaData, file, imageFile, report);
+            } catch (SocketException se) {
+		se.printStackTrace();
+		try {
+		    Thread.sleep(60000);
+		} catch (InterruptedException e) {
+		    e.printStackTrace();
+		    assert(false);
+		}
+		return;
             } catch (Exception e) {
                 e.printStackTrace();
                 this.moveFile(metaData, report, file);
@@ -270,7 +279,7 @@ public class FieldProcessor extends AbstractFieldProcessor {
                         file, imageFile, report);
                 this.transferHumphreyVisualField(reportText, report, file);
             }
-        } catch (IllegalArgumentException | ConnectException iaex) {
+        } catch (IllegalArgumentException iaex) {
             // the illegal argument exception occurs when (for example) a patient hos num
             // contains no leading zeros, but should - e.g. 0123456 vs. 123456
             // in the report, pid is 123456 but /should/ be 0123456
