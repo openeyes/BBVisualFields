@@ -542,6 +542,9 @@ public abstract class AbstractFieldProcessor implements Runnable {
             // nothing to do
             pcex.printStackTrace();
         }
+
+        metaData.setPatientId(metaData.getPatientId().replaceAll("\\s", ""));
+
         return metaData;
     }
 
