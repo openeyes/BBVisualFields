@@ -280,6 +280,7 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 this.transferHumphreyVisualField(reportText, report, file);
             }
         } catch (IllegalArgumentException iaex) {
+            iaex.printStackTrace();
             // the illegal argument exception occurs when (for example) a patient hos num
             // contains no leading zeros, but should - e.g. 0123456 vs. 123456
             // in the report, pid is 123456 but /should/ be 0123456
