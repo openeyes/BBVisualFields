@@ -19,8 +19,6 @@ package uk.org.openeyes.diagnostics;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import uk.org.openeyes.diagnostics.db.DbUtils;
 
 /**
@@ -40,16 +38,9 @@ public class HumphreyFieldMetaData {
   private String fileReference;
   private String eye;
   
-  private String regex;
-  
   private Set<Integer> errors;
 
-  /**
-   *
-   * @param regex
-   */
-  public HumphreyFieldMetaData(String regex) {
-    this.regex = regex;
+  public HumphreyFieldMetaData() {
     errors = new HashSet<Integer>();
   }
   
@@ -71,30 +62,6 @@ public class HumphreyFieldMetaData {
    */
   public void setPatientId(String patientId) {
     this.patientId = patientId;
-    if (!isSet(patientId)) {
-      this.addFieldError(DbUtils.ERROR_MISSING_PID);
-    } else {
-      if (!this.checkIdentifier(this.regex)) {
-        this.addFieldError(DbUtils.ERROR_BADLY_FORMED_PID);
-      }
-    }
-  }
-
-  /**
-   * Is the specified patient ID valid compared to the given regex?
-   * 
-   * @param regex the non-null expression to test the PID against.
-   * 
-   * @return true if the PID is a valid regex; false otherwise.
-   */
-  private boolean checkIdentifier(String regex) {
-    boolean valid = false;
-    if (this.patientId != null) {
-      Pattern p = Pattern.compile(regex);
-      Matcher matcher = p.matcher(this.patientId);
-      valid = matcher.matches();
-    }
-    return valid;
   }
 
   /**

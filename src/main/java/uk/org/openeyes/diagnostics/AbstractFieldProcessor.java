@@ -34,6 +34,8 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
@@ -460,7 +462,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
      * paths.
      */
     protected HumphreyFieldMetaData parseFields(File file) throws FileNotFoundException {
-        HumphreyFieldMetaData metaData = new HumphreyFieldMetaData(this.regex);
+        HumphreyFieldMetaData metaData = new HumphreyFieldMetaData();
         try {
             DocumentBuilderFactory builderFactory =
                     DocumentBuilderFactory.newInstance();
@@ -544,6 +546,12 @@ public abstract class AbstractFieldProcessor implements Runnable {
         }
 
         metaData.setPatientId(metaData.getPatientId().replaceAll("\\s", ""));
+
+        if (metaData.getPatientId().equals("")) {
+            metaData.addFieldError(DbUtils.ERROR_MISSING_PID);
+        } else if (!Pattern.compile(this.regex).matcher(metaData.getPatientId()).matches()) {
+            metaData.addFieldError(DbUtils.ERROR_BADLY_FORMED_PID);
+        }
 
         return metaData;
     }
@@ -722,7 +730,7 @@ public abstract class AbstractFieldProcessor implements Runnable {
             }
             if (!valid) {
                 // create appropriate report:
-                HumphreyFieldMetaData metaData = new HumphreyFieldMetaData(this.regex);
+                HumphreyFieldMetaData metaData = new HumphreyFieldMetaData();
                 metaData.addFieldError(DbUtils.ERROR_BADLY_FORMED_XML);
                 this.generateReport(file, metaData, false);
             }
