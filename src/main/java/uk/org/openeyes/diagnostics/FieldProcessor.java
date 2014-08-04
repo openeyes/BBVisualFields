@@ -205,21 +205,23 @@ public class FieldProcessor extends AbstractFieldProcessor {
                 return;
             }
 
-            try {
-                this.send(metaData, file, imageFile, report);
-            } catch (SocketException se) {
-		se.printStackTrace();
-		try {
-		    Thread.sleep(60000);
-		} catch (InterruptedException e) {
-		    e.printStackTrace();
-		    assert(false);
-		}
-		return;
-            } catch (Exception e) {
-                e.printStackTrace();
-                this.moveFile(metaData, report, file);
-                return;
+            if (report.getFieldErrorReports().isEmpty()) {
+                try {
+                    this.send(metaData, file, imageFile, report);
+                } catch (SocketException se) {
+                    se.printStackTrace();
+                    try {
+                        Thread.sleep(60000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        assert(false);
+                    }
+                    return;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    this.moveFile(metaData, report, file);
+                    return;
+                }
             }
 
             if (!report.getFieldErrorReports().isEmpty()) {
